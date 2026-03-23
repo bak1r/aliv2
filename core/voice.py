@@ -469,10 +469,12 @@ class VoiceEngine:
             result = ""
 
             if fc.name == "ali_brain":
-                request = fc.args.get("user_request", "")
+                request = fc.args.get("user_request", "") or self._last_user_text or ""
                 await self._broadcast("thinking", {"active": True, "text": request})
-
-                if self.brain_fn:
+                if not request.strip():
+                    result = "Bir şey söyleyin efendim, sizi duyamadım."
+                    log.warning("Boş user_request — atlanıyor")
+                elif self.brain_fn:
                     loop = asyncio.get_event_loop()
                     result = await loop.run_in_executor(
                         None, lambda: self.brain_fn(user_message=request)
