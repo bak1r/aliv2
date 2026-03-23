@@ -58,9 +58,11 @@ async def _voice_broadcast(event_type: str, data: dict):
     """Voice engine icin thread-safe broadcast wrapper.
     Voice engine ayri event loop'ta calisir, bu fonksiyon main loop'a schedule eder."""
     if _main_loop and _main_loop.is_running():
-        asyncio.run_coroutine_threadsafe(broadcast_to_all(event_type, data), _main_loop)
-    else:
-        await broadcast_to_all(event_type, data)
+        future = asyncio.run_coroutine_threadsafe(broadcast_to_all(event_type, data), _main_loop)
+        try:
+            future.result(timeout=5)
+        except Exception as e:
+            log.warning(f"Voice broadcast failed ({event_type}): {e}")
 
 
 @app.get("/")
@@ -209,35 +211,6 @@ async def ws_endpoint(ws: WebSocket):
                 # BUG 2 FIX: User mesajini geri gonderme — client sendMessage() zaten gosteriyor
                 # Sadece sesli giris icin voice engine kendi transcript'ini gonderir
 
-                # BUG 1 FIX: Fast-path for simple greetings — Claude API cagirmadan aninda yanit
-                _fast = text.lower().strip()
-                if _fast in ("selam", "merhaba", "hey", "naber", "nasilsin", "iyi gunler",
-                             "iyi aksamlar", "gunaydin", "hosca kal", "gorusuruz",
-                             "sagol", "tesekkurler", "tesekkur ederim", "eyvallah"):
-                    _greetings = {
-                        "selam": "Selam efendim, buyurun!",
-                        "merhaba": "Merhaba efendim, nasil yardimci olabilirim?",
-                        "hey": "Buyurun efendim!",
-                        "naber": "Iyiyim efendim, siz nasilsiniz? Buyurun.",
-                        "nasilsin": "Iyiyim efendim, tesekkurler. Sizin icin ne yapabilirim?",
-                        "iyi gunler": "Size de iyi gunler efendim!",
-                        "iyi aksamlar": "Iyi aksamlar efendim!",
-                        "gunaydin": "Gunaydin efendim! Bugun ne yapalim?",
-                        "hosca kal": "Hosca kalin efendim, iyi gunler!",
-                        "gorusuruz": "Gorusuruz efendim, iyi gunler!",
-                        "sagol": "Rica ederim efendim!",
-                        "tesekkurler": "Rica ederim efendim, baska bir sey var mi?",
-                        "tesekkur ederim": "Rica ederim efendim!",
-                        "eyvallah": "Ne demek efendim!",
-                    }
-                    reply = _greetings.get(_fast, "Buyurun efendim!")
-                    await ws.send_text(json.dumps({"type": "transcript", "data": {
-                        "role": "ai", "text": reply, "model": "fast-path",
-                        "domain": "genel", "tokens": 0, "latency_ms": 1,
-                        "tools_used": [],
-                    }}, ensure_ascii=False))
-                    continue
-
                 # Thinking basladi
                 await ws.send_text(json.dumps({"type": "thinking", "data": {
                     "active": True, "text": text
@@ -353,6 +326,15 @@ async def ws_endpoint(ws: WebSocket):
 def _start_voice_engine():
     """Ses motorunu ayri thread'de baslat."""
     global _voice_engine
+
+    # Wait for uvicorn to start and set _main_loop
+    for _ in range(30):  # Max 30 seconds
+        if _main_loop is not None:
+            break
+        time.sleep(1)
+    if _main_loop is None:
+        log.error("Main event loop not available — voice broadcast disabled")
+
     from core.voice import VoiceEngine
     from core.brain import think
 

@@ -509,14 +509,16 @@ class VoiceEngine:
 
             await self._broadcast("tool_state", {"name": fc.name, "state": "done"})
 
-            # Sonucu Gemini'ye gönder
+            # Sonucu Gemini'ye gönder — id alanı ZORUNLU
+            fr_kwargs = {
+                "name": fc.name,
+                "response": {"result": result[:3000]},
+            }
+            # Gemini API FunctionResponse id alanı gerektirir
+            if hasattr(fc, "id") and fc.id:
+                fr_kwargs["id"] = fc.id
             await session.send_tool_response(
-                function_responses=[
-                    types.FunctionResponse(
-                        name=fc.name,
-                        response={"result": result[:3000]},
-                    )
-                ],
+                function_responses=[types.FunctionResponse(**fr_kwargs)],
             )
 
     async def _force_brain_redirect(self, session, user_text: str):
@@ -594,10 +596,10 @@ class VoiceEngine:
                 log.warning(f"Bildirim hatası: {e}")
 
     async def _keepalive(self, session):
-        """Bağlantı canlı tutma — 30s aralıkla sessizlik gönder."""
+        """Bağlantı canlı tutma — 15s aralıkla sessizlik gönder."""
         silence = b"\x00" * 320
         while self._running:
-            await asyncio.sleep(30)
+            await asyncio.sleep(15)
             try:
                 await session.send_realtime_input(
                     media={"data": base64.b64encode(silence).decode(), "mime_type": "audio/pcm"},
