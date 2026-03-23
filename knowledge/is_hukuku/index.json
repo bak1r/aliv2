@@ -1,0 +1,59 @@
+{
+  "baslik": "İş Hukuku",
+  "temel_kanunlar": [
+    "4857 sayılı İş Kanunu",
+    "1475 sayılı Kanun m.14 (Kıdem Tazminatı)",
+    "6331 sayılı İSG Kanunu",
+    "6356 sayılı Sendikalar ve TİS Kanunu",
+    "7036 sayılı İş Mahkemeleri Kanunu",
+    "5510 sayılı SGK Kanunu"
+  ],
+  "konu": "Bireysel ve Toplu İş Hukuku",
+  "anahtar_maddeler": {
+    "4857_m8": "İş sözleşmesi tanımı ve türleri",
+    "4857_m11": "Belirli süreli iş sözleşmesi",
+    "4857_m13": "Kısmi süreli iş sözleşmesi",
+    "4857_m15": "Deneme süresi - 2 ay",
+    "4857_m17": "Süreli fesih ve bildirim süreleri",
+    "4857_m18": "İş güvencesi - feshin geçerli sebebe dayanması",
+    "4857_m20": "İşe iade davası",
+    "4857_m24": "İşçinin haklı nedenle derhal fesih hakkı",
+    "4857_m25": "İşverenin haklı nedenle derhal fesih hakkı",
+    "4857_m26": "Derhal fesihte hak düşürücü süre - 6 iş günü",
+    "4857_m32": "Ücret ödeme kuralları",
+    "4857_m34": "Ücreti ödenmeyen işçinin çalışmaktan kaçınma hakkı",
+    "4857_m41": "Fazla çalışma - %50 zamlı ücret",
+    "4857_m46": "Hafta tatili",
+    "4857_m53": "Yıllık ücretli izin süreleri",
+    "4857_m63": "Çalışma süresi - haftalık 45 saat",
+    "1475_m14": "Kıdem tazminatı şartları ve hesaplama"
+  },
+  "onemli_sureler": {
+    "deneme_suresi": "2 ay (TİS ile 4 ay)",
+    "bildirim_sureleri": {
+      "0_6_ay": "2 hafta",
+      "6_ay_1_5_yil": "4 hafta",
+      "1_5_3_yil": "6 hafta",
+      "3_yil_ustu": "8 hafta"
+    },
+    "ise_iade_arabuluculuk": "Fesihten itibaren 1 ay",
+    "ise_iade_dava": "Son tutanaktan itibaren 2 hafta",
+    "hakli_fesih_hak_dusurucusu": "6 iş günü / 1 yıl",
+    "kidem_tazminati_zamanasimi": "5 yıl",
+    "ucret_alacagi_zamanasimi": "5 yıl",
+    "yillik_izin_zamanasimi": "5 yıl",
+    "is_kazasi_bildirimi": "3 iş günü (SGK'ya)"
+  },
+  "tazminat_turleri": [
+    "Kıdem Tazminatı",
+    "İhbar Tazminatı",
+    "Sendikal Tazminat",
+    "İşe Başlatmama Tazminatı",
+    "Kötüniyet Tazminatı",
+    "Eşit Davranmama Tazminatı",
+    "Ayrımcılık Tazminatı"
+  ],
+  "gorevli_mahkeme": "İş Mahkemesi",
+  "arabuluculuk": "İşçi-işveren uyuşmazlıklarında zorunlu dava şartı",
+  "yargilama_usulu": "Basit Yargılama Usulü"
+}

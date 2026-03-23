@@ -1,0 +1,61 @@
+{
+  "baslik": "Hukuk Muhakemeleri Kanunu (HMK)",
+  "kanun_no": 6100,
+  "konu": "Medeni Yargılama Usulü",
+  "anahtar_maddeler": {
+    "m2": "Asliye hukuk mahkemesinin görevi",
+    "m4": "Sulh hukuk mahkemesinin görevi",
+    "m6": "Genel yetkili mahkeme - davalının yerleşim yeri",
+    "m10": "Sözleşmeden doğan davalarda yetki",
+    "m12": "Taşınmazın aynından doğan davalarda kesin yetki",
+    "m16": "Haksız fiilden doğan davalarda yetki",
+    "m24": "Tasarruf ilkesi",
+    "m25": "Taraflarca getirilme ilkesi",
+    "m27": "Hukuki dinlenilme hakkı",
+    "m31": "Hakimin davayı aydınlatma ödevi",
+    "m105": "Eda davası",
+    "m106": "Tespit davası",
+    "m107": "Belirsiz alacak davası",
+    "m114": "Dava şartları",
+    "m116": "İlk itirazlar",
+    "m119": "Dava dilekçesinin içeriği",
+    "m127": "Cevap süresi - 2 hafta",
+    "m137": "Ön incelemenin kapsamı",
+    "m176": "Islah",
+    "m190": "İspat yükü",
+    "m199": "Senetle ispat",
+    "m225": "Yemin",
+    "m240": "Tanık",
+    "m266": "Bilirkişi",
+    "m316": "Basit yargılama usulü",
+    "m341": "İstinaf",
+    "m361": "Temyiz",
+    "m389": "İhtiyati tedbir",
+    "m400": "Delil tespiti"
+  },
+  "onemli_sureler": {
+    "cevap_suresi": "2 hafta (m.127)",
+    "istinaf_suresi": "2 hafta (m.345)",
+    "temyiz_suresi": "2 hafta (m.361)",
+    "ihtiyati_tedbir_dava_acma": "2 hafta (m.397)",
+    "bilirkisi_itiraz": "2 hafta (m.281)",
+    "yargilamanin_iadesi": "3 ay / 10 yıl (m.377)"
+  },
+  "yargilama_usulleri": [
+    "Yazılı Yargılama Usulü",
+    "Basit Yargılama Usulü"
+  ],
+  "gorevli_mahkemeler": [
+    "Asliye Hukuk Mahkemesi",
+    "Sulh Hukuk Mahkemesi",
+    "Asliye Ticaret Mahkemesi",
+    "İş Mahkemesi",
+    "Tüketici Mahkemesi",
+    "Aile Mahkemesi"
+  ],
+  "ilgili_kanunlar": [
+    "6100 sayılı HMK",
+    "7201 sayılı Tebligat Kanunu",
+    "6325 sayılı Arabuluculuk Kanunu"
+  ]
+}

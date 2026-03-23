@@ -1,0 +1,5 @@
+# Windows-only dependencies
+comtypes
+pycaw
+win10toast
+pygetwindow

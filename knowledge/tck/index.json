@@ -1,0 +1,59 @@
+{
+  "kanun_no": 5237,
+  "kanun_adi": "Turk Ceza Kanunu",
+  "kisaltma": "TCK",
+  "resmi_gazete": "12.10.2004 / 25611",
+  "son_guncelleme": "2026-03-09",
+  "bolumler": [
+    {
+      "dosya": "genel_hukumler.md",
+      "baslik": "Birinci Kitap - Genel Hukumler",
+      "madde_araligi": "1-75",
+      "konular": ["ceza sorumlulugu", "kast", "taksir", "hukuka uygunluk", "kusurlulugun ortadan kalkmasi", "tesebbas", "istirak", "ictima", "yaptirimlar", "dava zamanasimi", "ceza zamanasimi"]
+    },
+    {
+      "dosya": "kisiye_karsi.md",
+      "baslik": "Ikinci Kitap Birinci Kisim - Kisiye Karsi Suclar",
+      "madde_araligi": "76-124",
+      "konular": ["hayata karsi", "vicut dokunulmazligi", "iskence", "koruma altindakilere kotumulamele", "cinsel dokunulmazlik", "hurriyete karsi", "ozel hayata karsi", "serefe karsi"]
+    },
+    {
+      "dosya": "topluma_karsi.md",
+      "baslik": "Ikinci Kitap Ikinci Kisim - Topluma Karsi Suclar",
+      "madde_araligi": "125-173",
+      "konular": ["kamu guvenligine karsi", "kamu sagligina karsi", "ekonomi sanayi ticarete karsi", "bilisim suclari", "genel ahlaka karsi"]
+    },
+    {
+      "dosya": "malvarligina_karsi.md",
+      "baslik": "Ikinci Kitap Ucuncu Kisim - Malvarligina Karsi Suclar",
+      "madde_araligi": "141-169",
+      "konular": ["hirsizlik", "yagma", "dolandiricilik", "guveni kotuye kullanma", "bedelsiz senedi kullanma", "suç eşyasini satin alma", "iflas"]
+    },
+    {
+      "dosya": "millete_karsi.md",
+      "baslik": "Ikinci Kitap Dorduncu Kisim - Millete ve Devlete Karsi Suclar",
+      "madde_araligi": "170-345",
+      "konular": ["kamu idaresinin guvenilirligi", "adliyeye karsi", "sahtecilik", "kamu barisi", "genel tehlike yaratan", "cevre", "devletin egemenlik alametleri", "devletin guvenligine karsi"]
+    },
+    {
+      "dosya": "ceza_hesaplama.md",
+      "baslik": "Ceza Hesaplama Kurallari ve Formulleri",
+      "madde_araligi": "ozel",
+      "konular": ["temel ceza belirleme", "arttirim", "indirim", "zincirleme suc", "tesebbas indirimi", "istirak", "takdiri indirim", "hapis cezasinin ertelenmesi", "hukumluluk"]
+    }
+  ],
+  "anahtar_maddeler": {
+    "dolandiricilik": {"basit": 157, "nitelikli": 158},
+    "hirsizlik": {"basit": 141, "nitelikli": 142},
+    "sahtecilik": {"resmi_belge": 204, "ozel_belge": 207},
+    "yaralama": {"basit": 86, "nitelikli": 87},
+    "oldurme": {"basit": 81, "nitelikli": 82},
+    "tehdit": 106,
+    "suc_islemeye_tahrik": 214,
+    "guveni_kotuye_kullanma": 155,
+    "zimmet": 247,
+    "irtikap": 250,
+    "ruset": 252,
+    "gorevi_kotuye_kullanma": 257
+  }
+}

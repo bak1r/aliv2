@@ -1,0 +1,133 @@
+{
+  "_version": "2026.03",
+  "_note": "UYAP selector map. UYAP UI degistiginde buradaki selector'leri guncelleyin. 'coordinates' selector basarisiz oldugunda fallback olarak kullanilir.",
+  "_source": "Adalet Bakanligi Bilgi Islem Genel Mudurlugu — UYAP Vatandas Portal Kullanim Kilavuzu",
+
+  "portal": {
+    "url": "https://vatandas.uyap.gov.tr",
+    "avukat_url": "https://avukat.uyap.gov.tr",
+    "verify_selector": "#mainContent, .portal-content, body",
+    "verify_description": "UYAP portal ana sayfasi",
+    "programlar_menu": {
+      "selector": "a[href*='programlar'], #programlarMenu",
+      "description": "Programlar menusu (sol taraf)",
+      "coordinates": [80, 400]
+    }
+  },
+
+  "login": {
+    "eimza_button": {
+      "selector": "#eImzaLogin, a[href*='eimza'], button:has-text('e-İmza')",
+      "description": "e-Imza ile giris butonu",
+      "coordinates": [400, 350]
+    },
+    "edevlet_button": {
+      "selector": "#eDevletLogin, a[href*='edevlet'], button:has-text('e-Devlet')",
+      "description": "e-Devlet ile giris butonu",
+      "coordinates": [400, 420]
+    },
+    "pin_input": {
+      "selector": "#pinInput, input[type='password']",
+      "description": "PIN giris alani",
+      "coordinates": [400, 300]
+    },
+    "imzala_button": {
+      "selector": "#imzalaBtn, button:has-text('İmzala')",
+      "description": "Imzala butonu",
+      "coordinates": [400, 380]
+    }
+  },
+
+  "case_search": {
+    "menu_button": {
+      "selector": "#menuDavaArama, a[href*='davaArama'], a[href*='dosyaSorgula']",
+      "description": "Dava Arama / Dosya Sorgula menu butonu",
+      "coordinates": [120, 280]
+    },
+    "dosya_no_input": {
+      "selector": "#dosyaNo, input[name='dosyaNo'], input[name='dosyaNumarasi']",
+      "description": "Dosya numarasi giris alani",
+      "coordinates": [400, 250]
+    },
+    "esas_no_input": {
+      "selector": "#esasNo, input[name='esasNo'], input[name='esasNumarasi']",
+      "description": "Esas numarasi giris alani",
+      "coordinates": [400, 300]
+    },
+    "yil_input": {
+      "selector": "#yil, input[name='yil'], select[name='yil']",
+      "description": "Yil alani",
+      "coordinates": [300, 250]
+    },
+    "search_button": {
+      "selector": "#araBtn, button[type='submit'], button:has-text('Ara'), button:has-text('Sorgula')",
+      "description": "Ara / Sorgula butonu",
+      "coordinates": [600, 350]
+    },
+    "result_row": {
+      "selector": "tr.davaRow, .case-result-row, table tbody tr:first-child",
+      "description": "Ilk dava sonuc satiri",
+      "coordinates": [400, 450]
+    }
+  },
+
+  "case_detail": {
+    "documents_tab": {
+      "selector": "#belgelerTab, a[href*='belgeler'], a:has-text('Belgeler'), li:has-text('Evrak')",
+      "description": "Belgeler / Evrak sekmesi",
+      "coordinates": [350, 180]
+    },
+    "hearings_tab": {
+      "selector": "#durusmalarTab, a[href*='durusma'], a:has-text('Duruşma'), li:has-text('Duruşma')",
+      "description": "Durusmalar sekmesi",
+      "coordinates": [500, 180]
+    },
+    "parties_tab": {
+      "selector": "#taraflarTab, a[href*='taraf'], a:has-text('Taraflar')",
+      "description": "Taraflar sekmesi",
+      "coordinates": [250, 180]
+    },
+    "download_button": {
+      "selector": ".downloadBtn, a[title*='indir'], button[title*='indir'], a[title*='İndir']",
+      "description": "Belge indirme butonu",
+      "coordinates": [700, 300]
+    },
+    "document_row": {
+      "selector": "table.evrakTable tbody tr, .document-list-row, .evrak-satir",
+      "description": "Evrak listesi satiri",
+      "coordinates": [400, 350]
+    },
+    "document_name_cell": {
+      "selector": "td.evrakAdi, td:nth-child(2)",
+      "description": "Evrak adi kolonu"
+    },
+    "document_date_cell": {
+      "selector": "td.evrakTarihi, td:nth-child(3)",
+      "description": "Evrak tarihi kolonu"
+    }
+  },
+
+  "document_viewer": {
+    "udf_container": {
+      "selector": "#udfViewer, .document-viewer, iframe#documentFrame",
+      "description": "UDF belge goruntuleyici",
+      "coordinates": [500, 400]
+    },
+    "save_button": {
+      "selector": "#kaydedBtn, button[title*='kaydet'], a[title*='Kaydet']",
+      "description": "Farkli kaydet butonu",
+      "coordinates": [650, 80]
+    },
+    "print_button": {
+      "selector": "#yazdirBtn, button[title*='yazdir'], a[title*='Yazdır']",
+      "description": "Yazdir butonu",
+      "coordinates": [700, 80]
+    }
+  },
+
+  "session_markers": {
+    "edevlet_indicators": ["e-Devlet", "edevlet", "T.C. Kimlik", "sifre ile giris"],
+    "eimza_indicators": ["e-İmza", "eimza", "elektronik imza", "sertifika"],
+    "logged_in_indicators": ["Hoşgeldiniz", "hosgeldiniz", "Çıkış", "cikis", "Oturumu Kapat"]
+  }
+}

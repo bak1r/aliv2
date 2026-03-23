@@ -1,0 +1,69 @@
+{
+  "baslik": "İcra ve İflas Hukuku",
+  "kanun_no": 2004,
+  "konu": "İcra Takibi, Haciz, İflas, Konkordato",
+  "anahtar_maddeler": {
+    "m16": "Şikayet - 7 gün",
+    "m33": "İcranın geri bırakılması",
+    "m58": "Takip talebi",
+    "m60": "Ödeme emri",
+    "m62": "İtiraz - 7 gün",
+    "m67": "İtirazın iptali davası - 1 yıl",
+    "m68": "İtirazın kesin kaldırılması - 6 ay",
+    "m72": "Menfi tespit ve istirdat davası",
+    "m78": "Haciz talebi - 1 yıl",
+    "m82": "Haczedilemeyecek mallar",
+    "m83": "Maaş haczi - 1/4",
+    "m89": "Üçüncü kişilere haciz ihbarnamesi",
+    "m112": "Taşınır satışı - 6 ay",
+    "m123": "Taşınmaz satışı - 1 yıl",
+    "m134": "İhalenin feshi - 7 gün",
+    "m143": "Aciz belgesi",
+    "m155": "Takipli iflas",
+    "m167": "Kambiyo senetlerine özgü takip",
+    "m168": "Kambiyo ödeme emri - 10 gün",
+    "m177": "Doğrudan iflas",
+    "m206": "İflasta sıra",
+    "m257": "İhtiyati haciz",
+    "m269": "Kiralanan taşınmazların tahliyesi",
+    "m277": "Tasarrufun iptali",
+    "m285": "Konkordato",
+    "m340": "Taahhüdü ihlal - tazyik hapsi",
+    "m344": "Nafaka borcunu ödememe - tazyik hapsi"
+  },
+  "onemli_sureler": {
+    "odeme_emri_itiraz": "7 gün (m.62)",
+    "kambiyo_itiraz": "5 gün (m.168)",
+    "sikayet": "7 gün / süresiz (m.16)",
+    "itirazin_iptali": "1 yıl (m.67)",
+    "itirazin_kaldirilmasi": "6 ay (m.68)",
+    "haciz_talebi": "1 yıl (m.78)",
+    "tasinir_satis_talebi": "6 ay (m.112)",
+    "tasinmaz_satis_talebi": "1 yıl (m.123)",
+    "ihalenin_feshi": "7 gün (m.134)",
+    "ihtiyati_haciz_takip": "10 gün (m.264)",
+    "istirdat_davasi": "1 yıl (m.72)",
+    "tasarrufun_iptali": "5 yıl (m.284)",
+    "ilam_zamanasimi": "10 yıl (m.39)",
+    "konkordato_gecici_muhlet": "3+2 ay",
+    "konkordato_kesin_muhlet": "1 yıl + 6 ay"
+  },
+  "takip_turleri": [
+    "Genel Haciz Yolu (İlamsız)",
+    "Kambiyo Senetlerine Özgü Haciz Yolu",
+    "Kiralanan Taşınmazların Tahliyesi",
+    "İlamlı İcra",
+    "Rehnin Paraya Çevrilmesi",
+    "İflas Yolu"
+  ],
+  "gorevli_mahkemeler": {
+    "icra_mahkemesi": "Şikayet, itirazın kaldırılması, ihalenin feshi",
+    "asliye_hukuk": "İtirazın iptali, menfi tespit, tasarrufun iptali",
+    "ticaret_mahkemesi": "İflas davaları, konkordato"
+  },
+  "ilgili_kanunlar": [
+    "2004 sayılı İİK",
+    "6102 sayılı TTK",
+    "7201 sayılı Tebligat Kanunu"
+  ]
+}

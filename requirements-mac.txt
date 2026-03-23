@@ -1,0 +1,3 @@
+# macOS-only dependencies
+pyobjc-framework-Cocoa
+pyobjc-framework-Quartz

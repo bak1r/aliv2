@@ -1,0 +1,48 @@
+# AI
+google-genai
+google-generativeai
+anthropic
+
+# Audio
+pyaudio
+
+# UI
+customtkinter
+
+# Browser
+playwright
+requests
+beautifulsoup4
+
+# Documents
+fpdf2
+python-docx
+pdfplumber
+
+# Web Server
+fastapi
+uvicorn[standard]
+websockets
+
+# WhatsApp
+pywhatkit
+
+# Screen
+pillow
+opencv-python
+mss
+pyautogui
+numpy
+
+# Search
+duckduckgo-search
+
+# Telegram
+python-telegram-bot
+
+# Utils
+psutil
+send2trash
+pyperclip
+python-dotenv
+python-dateutil

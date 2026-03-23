@@ -1,0 +1,40 @@
+{
+  "kanun_no": 5271,
+  "kanun_adi": "Ceza Muhakemesi Kanunu",
+  "kisaltma": "CMK",
+  "resmi_gazete": "17.12.2004 / 25673",
+  "son_guncelleme": "2026-03-09",
+  "bolumler": [
+    {
+      "dosya": "sorusturma.md",
+      "baslik": "Sorusturma Evresi",
+      "madde_araligi": "1-134",
+      "konular": ["yargi yetkileri", "taniklik", "bilirkisi", "kesif", "telekomunikasyon yoluyla iletisimin denetlenmesi", "gizli sorusturmaci", "teknik araclarla izleme", "arama el koyma", "yakalama gozaltina alma tutuklama", "adli kontrol"]
+    },
+    {
+      "dosya": "kovusturma.md",
+      "baslik": "Kovusturma Evresi",
+      "madde_araligi": "135-231",
+      "konular": ["iddianame", "durusma hazirlik", "durusma", "delil degerlendirme", "karar", "hukum", "uzlasma", "iddianamenin iadesi", "beraat", "mahkumiyet", "ceza verilmesine yer olmadigina karar"]
+    },
+    {
+      "dosya": "kanun_yollari.md",
+      "baslik": "Kanun Yollari",
+      "madde_araligi": "232-323",
+      "konular": ["itiraz", "istinaf", "temyiz", "yargılamanin yenilenmesi", "kanun yararina bozma"]
+    }
+  ],
+  "anahtar_maddeler": {
+    "tutuklama_sartlari": 100,
+    "adli_kontrol": 109,
+    "iddianamenin_iadesi": 174,
+    "beraat_karari": 223,
+    "mahkumiyet_karari": 230,
+    "hukuka_aykiri_delil": 206,
+    "uzlasma": 253,
+    "istinaf": 272,
+    "temyiz": 286,
+    "seri_muhakeme": 250,
+    "basit_yargilama": 251
+  }
+}

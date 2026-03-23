@@ -1,0 +1,3048 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ALI — Avukat AI Asistani</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#030711;--bg2:#080e1a;--panel:rgba(8,14,28,0.75);
+  --border:rgba(74,144,217,0.08);--border-h:rgba(74,144,217,0.20);
+  --blue:#4a90d9;--cyan:#00d4ff;--gold:#d4a017;--green:#00c868;
+  --red:#e84040;--purple:#7b68ee;--amber:#f59e0b;--pink:#ec4899;
+  --text:#c8d6e8;--text2:#94a3b8;--dim:#3d4a5c;
+  --glass:blur(32px) saturate(1.8);
+  --radius:16px;
+}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);
+  display:flex;flex-direction:column;
+  opacity:0;animation:pageReveal 0.8s ease 0.1s forwards;
+}
+@keyframes pageReveal{to{opacity:1}}
+::selection{background:rgba(0,212,255,0.2)}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(74,144,217,0.12);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:rgba(74,144,217,0.25)}
+
+/* ═══════════════════ FULL-SCREEN CANVAS ═══════════════════ */
+#brainCanvas{
+  position:fixed;inset:0;width:100%;height:100%;z-index:0;display:block;
+  opacity:0;animation:canvasReveal 1s ease 0.05s forwards;
+}
+@keyframes canvasReveal{to{opacity:1}}
+
+/* ═══════════════════ HEADER (52px) ═══════════════════ */
+header{
+  height:52px;background:var(--panel);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 18px;gap:12px;
+  backdrop-filter:var(--glass);z-index:100;flex-shrink:0;position:relative;
+  opacity:0;animation:slideDown 0.5s ease 0.2s forwards;
+}
+@keyframes slideDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.brand{display:flex;align-items:center;gap:8px;min-width:160px}
+.brand-logo{
+  width:28px;height:28px;border-radius:10px;
+  background:linear-gradient(135deg,#0d1b2a,#1b2838);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;
+}
+.brand-logo::after{
+  content:'';position:absolute;width:12px;height:12px;border-radius:50%;
+  background:radial-gradient(circle,var(--cyan),transparent);opacity:0.6;
+  animation:logo-breathe 3s ease infinite;
+}
+.brand-name{
+  font-size:17px;font-weight:800;letter-spacing:2px;
+  background:linear-gradient(135deg,var(--cyan) 0%,var(--blue) 30%,var(--purple) 60%,var(--pink) 100%);
+  background-size:200% auto;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  animation:gradientShift 4s ease infinite;
+}
+@keyframes gradientShift{0%,100%{background-position:0% center}50%{background-position:200% center}}
+.brand-ver{font-size:9px;color:var(--dim);letter-spacing:1.5px;font-weight:500}
+.hdr-center{flex:1;display:flex;justify-content:center;align-items:center;gap:10px}
+.badge{padding:3px 10px;border-radius:16px;font-size:10px;font-weight:600;border:1px solid;letter-spacing:0.5px;white-space:nowrap}
+.badge-model{color:var(--cyan);border-color:rgba(0,212,255,0.25);background:rgba(0,212,255,0.04)}
+.badge-domain{color:var(--gold);border-color:rgba(212,160,23,0.25);background:rgba(212,160,23,0.04)}
+.badge-switch{color:var(--purple);border-color:rgba(123,104,238,0.25);background:rgba(123,104,238,0.04);display:none;gap:5px;align-items:center}
+.badge-switch.vis{display:inline-flex}
+.switch-dot{width:6px;height:6px;border-radius:50%;background:var(--purple)}
+.switch-reason{font-size:9px;color:var(--dim);font-weight:400}
+.badge-think{
+  color:var(--amber);border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.04);
+  display:none;align-items:center;gap:5px;
+}
+.badge-think.vis{display:inline-flex}
+.think-dots{display:flex;gap:3px;position:relative;width:18px;height:14px}
+.think-dots span{
+  width:5px;height:5px;border-radius:50%;background:var(--amber);
+  position:absolute;left:50%;top:50%;margin-left:-2.5px;margin-top:-2.5px;
+  animation:orbitDots 1.2s linear infinite;
+}
+.think-dots span:nth-child(1){animation-delay:0s}
+.think-dots span:nth-child(2){animation-delay:0.4s}
+.think-dots span:nth-child(3){animation-delay:0.8s}
+@keyframes orbitDots{
+  0%{transform:translate(0,-6px);opacity:1}
+  33%{transform:translate(5.2px,3px);opacity:0.7}
+  66%{transform:translate(-5.2px,3px);opacity:0.7}
+  100%{transform:translate(0,-6px);opacity:1}
+}
+.hdr-right{display:flex;align-items:center;gap:10px;min-width:160px;justify-content:flex-end}
+.btn-dur{
+  padding:5px 14px;border-radius:8px;border:1px solid var(--red);
+  background:rgba(232,64,64,0.08);color:var(--red);font-size:10px;font-weight:700;
+  cursor:pointer;letter-spacing:1px;display:none;transition:all 0.2s;
+}
+.btn-dur:hover{background:rgba(232,64,64,0.2);transform:translateY(-1px)}
+.btn-dur.vis{display:block;animation:dur-pop 0.3s ease}
+.conn{display:flex;align-items:center;gap:6px}
+.conn-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--red);
+  transition:all 0.5s;box-shadow:none;position:relative;
+}
+.conn-dot.on{background:var(--green);box-shadow:0 0 8px rgba(0,200,104,0.5)}
+.conn-dot.on::after{
+  content:'';position:absolute;inset:-4px;border-radius:50%;
+  border:1.5px solid rgba(0,200,104,0.3);
+  animation:sonarPulse 2s ease-out infinite;
+}
+@keyframes sonarPulse{
+  0%{transform:scale(1);opacity:0.6}
+  100%{transform:scale(2.2);opacity:0}
+}
+.conn-lbl{font-size:9px;color:var(--dim);letter-spacing:0.5px}
+
+/* ═══════════════════ MAIN LAYOUT ═══════════════════ */
+.main{flex:1;display:flex;justify-content:stretch;overflow:hidden;position:relative;z-index:1}
+
+/* ═══════════════════ LEFT DRAWER (Tool Rack) ═══════════════════ */
+.drawer-toggle-left,.drawer-toggle-right{display:none !important;
+  position:fixed;top:50%;z-index:150;
+  width:36px;height:36px;border-radius:50%;
+  background:var(--panel);border:1px solid var(--border);
+  backdrop-filter:var(--glass);color:var(--dim);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all 0.3s;font-size:14px;
+}
+.drawer-toggle-left{left:8px;transform:translateY(-50%)}
+.drawer-toggle-right{right:8px;transform:translateY(-50%)}
+.drawer-toggle-left:hover,.drawer-toggle-right:hover{
+  border-color:var(--cyan);color:var(--cyan);
+  box-shadow:0 0 16px rgba(0,212,255,0.1);
+}
+
+.panel-l{
+  position:relative;width:260px;flex-shrink:0;
+  background:var(--panel);border-right:1px solid var(--border);
+  overflow-y:auto;padding:14px 0;backdrop-filter:var(--glass);
+  z-index:10;
+  transform:translateX(0);transition:transform 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+.panel-l.open{transform:translateX(0)}
+.tool-cat{padding:2px 12px;margin-top:12px}
+.tool-cat:first-child{margin-top:4px}
+.tool-cat-hdr{font-size:8px;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:6px;font-weight:700;padding-left:2px}
+.tool-row{
+  display:flex;align-items:center;gap:8px;padding:5px 12px;font-size:11px;
+  color:var(--dim);transition:all 0.2s;border-radius:8px;cursor:default;
+}
+.tool-row:hover{background:rgba(74,144,217,0.06);color:var(--text2)}
+.tool-dot{width:5px;height:5px;border-radius:50%;background:rgba(74,144,217,0.15);flex-shrink:0;transition:all 0.3s}
+.tool-row.running .tool-dot{background:var(--amber);box-shadow:0 0 8px rgba(245,158,11,0.6);animation:pulse-d 1s ease infinite}
+.tool-row.done .tool-dot{background:var(--green);box-shadow:0 0 6px rgba(0,200,104,0.4)}
+.tool-row.error .tool-dot{background:var(--red);box-shadow:0 0 6px rgba(232,64,64,0.4)}
+.tool-nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tool-st{font-size:8px;font-family:'JetBrains Mono',monospace;color:var(--dim);min-width:20px;text-align:right}
+
+/* ═══════════════════ RIGHT DRAWER ═══════════════════ */
+.panel-r{
+  position:relative;width:280px;flex-shrink:0;
+  background:var(--panel);border-left:1px solid var(--border);
+  overflow-y:auto;padding:0;backdrop-filter:var(--glass);
+  z-index:10;display:flex;flex-direction:column;
+  transform:translateX(0);transition:transform 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+.panel-r.open{transform:translateX(0)}
+.r-sec{padding:12px 14px;border-bottom:1px solid var(--border)}
+.r-sec:last-child{border-bottom:none}
+.r-title{font-size:8px;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:8px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.r-title .r-btn{font-size:8px;padding:2px 8px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--dim);cursor:pointer;transition:all 0.2s}
+.r-title .r-btn:hover{border-color:var(--blue);color:var(--text2)}
+
+/* Notes */
+.note{font-size:10px;padding:6px 8px;border-left:2px solid var(--blue);margin-bottom:4px;color:var(--text);animation:note-in 0.3s ease;background:rgba(74,144,217,0.03);border-radius:0 6px 6px 0;line-height:1.5}
+.note.urgent{border-left-color:var(--red)}
+.note.warn{border-left-color:var(--amber)}
+.note .note-t{font-size:8px;color:var(--dim);display:block;margin-top:2px;font-family:'JetBrains Mono',monospace}
+
+/* Cost */
+.cost-row{display:flex;justify-content:space-between;font-size:10px;padding:3px 0}
+.cost-row .cost-v{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--green)}
+
+/* Stats */
+.stat-row{display:flex;justify-content:space-between;font-size:10px;padding:3px 0}
+.stat-lbl{color:var(--dim)}
+.stat-v{font-family:'JetBrains Mono',monospace;font-weight:500}
+
+/* Health */
+.h-row{display:flex;align-items:center;gap:6px;font-size:10px;padding:3px 0}
+.h-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.h-ok{background:var(--green);box-shadow:0 0 4px rgba(0,200,104,0.4)}
+.h-warn{background:var(--amber);box-shadow:0 0 4px rgba(245,158,11,0.4)}
+.h-err{background:var(--red);box-shadow:0 0 4px rgba(232,64,64,0.4)}
+.h-off{background:var(--dim)}
+.h-lbl{flex:1;color:var(--text2)}
+.h-val{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--dim)}
+
+/* Capabilities */
+.cap-tag{display:inline-block;font-size:8px;padding:2px 7px;border-radius:10px;margin:2px;border:1px solid;font-weight:500;letter-spacing:0.3px}
+.cap-tag.on{color:var(--green);border-color:rgba(0,200,104,0.25);background:rgba(0,200,104,0.04)}
+.cap-tag.part{color:var(--amber);border-color:rgba(245,158,11,0.25);background:rgba(245,158,11,0.04)}
+.cap-tag.off{color:var(--dim);border-color:var(--border)}
+
+/* ═══════════════════ CENTER COLUMN ═══════════════════ */
+.panel-c{
+  display:flex;flex-direction:column;overflow:hidden;position:relative;
+  flex:1;min-width:0;z-index:10;
+  opacity:0;animation:fadeUp 0.6s ease 0.35s forwards;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* Brain label & meter (overlay on canvas) */
+.brain-label{
+  position:fixed;top:62px;left:50%;transform:translateX(-50%);
+  font-size:9px;letter-spacing:5px;color:var(--dim);text-transform:uppercase;
+  pointer-events:none;transition:color 0.5s;z-index:5;
+}
+.brain-label.thinking{color:var(--amber)}
+.brain-label.speaking{color:var(--green)}
+.brain-label.listening{color:var(--cyan)}
+
+.audio-meter{position:fixed;top:52px;left:0;right:0;height:2px;z-index:101;background:transparent}
+.audio-meter-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--cyan),var(--green),var(--cyan));transition:width 0.1s;border-radius:0 2px 2px 0}
+
+/* Model Bar (hidden, kept for JS compatibility) */
+.model-bar{display:none}
+.m-chip{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--dim);font-weight:600;letter-spacing:0.5px;transition:all 0.3s;cursor:default;padding:2px 8px;border-radius:10px}
+.m-chip.active{color:#fff}
+.m-chip .m-dot{width:5px;height:5px;border-radius:50%;transition:all 0.3s}
+.m-chip.active .m-dot{animation:pulse-d 1.2s ease infinite}
+
+/* ═══════════════════ THINKING OVERLAY ═══════════════════ */
+#thinkSec{
+  position:fixed;top:64px;left:50%;transform:translateX(-50%);
+  width:380px;max-width:90vw;z-index:110;
+  background:var(--panel);border:1px solid rgba(245,158,11,0.15);
+  border-radius:var(--radius);backdrop-filter:var(--glass);
+  padding:12px 16px;
+  box-shadow:0 12px 48px rgba(0,0,0,0.4),0 0 1px rgba(245,158,11,0.2);
+}
+.think-step{font-size:10px;padding:4px 7px;margin-bottom:2px;border-radius:6px;animation:note-in 0.3s ease;display:flex;align-items:center;gap:6px;line-height:1.4}
+.think-step .ts-icon{font-size:11px;flex-shrink:0;width:16px;text-align:center}
+.think-step .ts-text{flex:1;color:var(--text2)}
+.think-step.ts-active{background:rgba(245,158,11,0.06);border-left:2px solid var(--amber);color:var(--text)}
+.think-step.ts-active .ts-text{color:var(--text)}
+.think-step.ts-done{border-left:2px solid var(--green)}
+.think-step.ts-done .ts-text{color:var(--text2)}
+.think-timer{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--amber);text-align:center;padding:4px 0;letter-spacing:1px}
+.chat-think-inline{font-size:10px;color:var(--amber);padding:2px 0;animation:msg-in 0.25s ease;display:flex;align-items:center;gap:6px}
+.chat-think-inline .cti-dot{width:5px;height:5px;border-radius:50%;background:var(--amber);animation:pulse-d 1s ease infinite}
+.chat-think-inline .cti-tool{color:var(--purple);font-weight:600;font-size:9px;letter-spacing:0.5px}
+
+/* ═══════════════════ CHAT ═══════════════════ */
+.chat-area{
+  flex:1;overflow-y:auto;padding:80px 20px 10px 20px;
+  display:flex;flex-direction:column;gap:6px;
+}
+.chat-line{
+  font-size:13px;line-height:1.7;animation:msg-in 0.3s ease;
+  padding:8px 14px;border-radius:18px;max-width:92%;position:relative;
+  transition:all 0.2s;
+}
+.chat-line .tag{font-weight:700;font-size:10px;margin-right:6px;letter-spacing:0.3px;display:none}
+.tag-u{color:var(--gold)}
+.tag-a{color:var(--cyan)}
+.tag-s{color:var(--dim)}
+.tag-t{color:var(--purple)}
+
+/* User bubble */
+.chat-line:has(.tag-u){
+  align-self:flex-end;
+  background:linear-gradient(135deg,rgba(74,144,217,0.18),rgba(123,104,238,0.12));
+  border:1px solid rgba(74,144,217,0.12);
+  border-radius:18px 18px 4px 18px;
+  color:var(--text);
+}
+/* AI bubble */
+.chat-line:has(.tag-a){
+  align-self:flex-start;
+  background:rgba(8,14,28,0.65);
+  border:1px solid rgba(0,212,255,0.08);
+  border-radius:18px 18px 18px 4px;
+  box-shadow:0 0 20px rgba(0,212,255,0.03);
+  backdrop-filter:blur(8px);
+}
+/* System message */
+.chat-line:has(.tag-s){
+  align-self:center;text-align:center;
+  background:transparent;border:none;
+  color:var(--dim);font-style:italic;font-size:11px;
+  padding:4px 10px;
+}
+/* Tool message */
+.chat-line:has(.tag-t){
+  align-self:center;
+  background:rgba(123,104,238,0.06);border:1px solid rgba(123,104,238,0.12);
+  border-radius:20px;padding:4px 14px;font-size:10px;color:var(--text2);
+}
+
+.chat-meta{
+  font-size:8px;color:var(--dim);font-family:'JetBrains Mono',monospace;margin-left:3px;
+  opacity:0;transition:opacity 0.25s;
+}
+.chat-line:hover .chat-meta{opacity:1}
+.chat-line strong{color:var(--text);font-weight:600}
+.chat-typing{display:inline}
+.chat-cursor{
+  display:inline-block;width:3px;height:14px;
+  background:var(--cyan);margin-left:1px;
+  animation:blink 0.8s step-end infinite;
+  vertical-align:text-bottom;border-radius:1px;
+  box-shadow:0 0 6px rgba(0,212,255,0.5);
+}
+
+/* ═══════════════════ INPUT DOCK ═══════════════════ */
+.input-wrap{
+  padding:10px 16px;
+  border-top:1px solid transparent;
+  background:var(--panel);backdrop-filter:var(--glass);
+  flex-shrink:0;display:flex;gap:8px;align-items:center;
+  position:sticky;bottom:0;
+  opacity:0;animation:fadeUp 0.5s ease 0.5s forwards;
+}
+.input-wrap::before{
+  content:'';position:absolute;top:-1px;left:10%;right:10%;height:1px;
+  background:linear-gradient(90deg,transparent,var(--cyan),var(--purple),transparent);
+}
+.input-wrap input{
+  flex:1;background:rgba(15,22,40,0.85);
+  border:1.5px solid var(--border);border-radius:22px;
+  padding:11px 16px;color:var(--text);font-size:13px;
+  outline:none;font-family:'Inter',sans-serif;transition:all 0.3s;
+}
+.input-wrap input:focus{
+  border-color:transparent;
+  background:rgba(15,22,40,0.95);
+  box-shadow:0 0 0 2px rgba(0,212,255,0.15),0 0 0 1px rgba(123,104,238,0.15);
+}
+.input-wrap input::placeholder{color:var(--dim)}
+.btn-send{
+  padding:11px 20px;border-radius:22px;border:none;
+  background:linear-gradient(135deg,var(--blue),var(--purple));
+  color:white;font-size:12px;cursor:pointer;font-weight:600;
+  transition:all 0.25s;letter-spacing:0.3px;
+}
+.btn-send:hover{filter:brightness(1.15);transform:translateY(-1px);box-shadow:0 4px 16px rgba(74,144,217,0.3)}
+.btn-send:active{transform:translateY(0)}
+.btn-mic{
+  width:40px;height:40px;border-radius:12px;border:1px solid var(--border);
+  background:transparent;color:var(--dim);font-size:16px;
+  cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.btn-mic:hover{border-color:var(--cyan);color:var(--cyan)}
+.btn-mic.on{color:var(--cyan);border-color:var(--cyan);background:rgba(0,212,255,0.06);animation:mic-glow 2s ease infinite}
+.btn-mute{
+  width:52px;height:52px;border-radius:50%;border:2px solid var(--green);
+  background:rgba(0,200,104,0.08);color:var(--green);font-size:22px;
+  cursor:pointer;transition:all 0.25s;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;position:relative;
+}
+.btn-mute:hover{transform:scale(1.08);box-shadow:0 0 20px rgba(0,200,104,0.25)}
+.btn-mute.muted{border-color:var(--red);background:rgba(232,64,64,0.15);color:var(--red);animation:mute-pulse 1.5s ease infinite}
+.btn-mute.muted:hover{box-shadow:0 0 20px rgba(232,64,64,0.25)}
+@keyframes mute-pulse{0%,100%{box-shadow:0 0 0 0 rgba(232,64,64,0.3)}50%{box-shadow:0 0 0 10px rgba(232,64,64,0)}}
+.shortcut-hint{font-size:8px;color:var(--dim);letter-spacing:0.5px;flex-shrink:0}
+
+/* ═══════════════════ FOOTER (36px) ═══════════════════ */
+footer{
+  height:36px;background:var(--panel);border-top:1px solid var(--border);
+  display:flex;align-items:center;padding:0 18px;justify-content:space-between;
+  backdrop-filter:var(--glass);flex-shrink:0;z-index:100;
+  opacity:0;animation:fadeUp 0.4s ease 0.6s forwards;
+}
+.f-left{display:flex;gap:14px}
+.daemon{
+  display:flex;align-items:center;gap:5px;
+  font-size:8px;color:var(--dim);letter-spacing:1px;font-weight:600;
+  background:rgba(255,255,255,0.02);padding:2px 8px;border-radius:10px;
+}
+.d-dot{width:4px;height:4px;border-radius:50%;background:var(--dim);transition:all 0.3s}
+.d-dot.up{background:var(--green);animation:heartbeat 2s ease infinite}
+.d-dot.deg{background:var(--amber);animation:heartbeat 2s ease infinite}
+.d-dot.down{background:var(--red)}
+.f-center{font-size:8px;color:rgba(74,144,217,0.12);letter-spacing:5px;font-weight:600}
+.f-right{display:flex;gap:6px;align-items:center}
+.f-btn{
+  font-size:9px;padding:3px 12px;border-radius:12px;border:1px solid var(--border);
+  background:none;color:var(--dim);cursor:pointer;transition:all 0.2s;font-weight:500;
+}
+.f-btn:hover{border-color:var(--blue);color:var(--text2)}
+
+/* ═══════════════════ NOTIFICATIONS ═══════════════════ */
+.notif-container{
+  position:fixed;bottom:48px;right:16px;width:320px;z-index:200;
+  display:flex;flex-direction:column-reverse;gap:8px;pointer-events:none;
+}
+.notif{
+  pointer-events:auto;background:var(--panel);
+  border:1px solid var(--border-h);border-radius:14px;
+  padding:0;backdrop-filter:var(--glass);overflow:hidden;
+  animation:notif-slide 0.5s cubic-bezier(0.175,0.885,0.32,1.275);
+  box-shadow:0 12px 48px rgba(0,0,0,0.5),0 0 1px rgba(0,212,255,0.1);
+  position:relative;
+}
+.notif.urgent{border-color:rgba(232,64,64,0.3)}
+.notif.exit{animation:notif-out 0.3s ease forwards}
+.notif-accent{height:3px;background:linear-gradient(90deg,var(--cyan),var(--purple));width:100%}
+.notif.urgent .notif-accent{background:linear-gradient(90deg,var(--red),var(--amber))}
+.notif-inner{padding:10px 14px}
+.notif-title{font-size:9px;letter-spacing:2px;font-weight:700;color:var(--cyan);margin-bottom:4px;text-transform:uppercase}
+.notif.urgent .notif-title{color:var(--red);animation:urgent-pulse 2s ease infinite}
+@keyframes urgent-pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+.notif-body{font-size:11px;color:var(--text2);line-height:1.5}
+.notif-progress{height:2px;background:rgba(255,255,255,0.06);position:absolute;bottom:0;left:0;right:0}
+.notif-progress-bar{height:100%;background:var(--cyan);transition:width linear}
+.notif.urgent .notif-progress-bar{background:var(--red)}
+@keyframes notif-slide{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+
+/* Insight alerts */
+.insight-container{position:fixed;bottom:48px;right:16px;width:320px;z-index:200;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.insight{pointer-events:auto;background:var(--panel);border:1px solid var(--border-h);border-radius:12px;padding:10px 12px;backdrop-filter:var(--glass);animation:notif-slide 0.3s ease;box-shadow:0 8px 32px rgba(0,0,0,0.4)}
+.insight.exit{animation:notif-out 0.3s ease forwards}
+.insight-hdr{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.insight-icon{font-size:12px}
+.insight-ttl{font-size:10px;font-weight:700;color:var(--text)}
+.insight-body{font-size:10px;color:var(--text2);line-height:1.5}
+.insight-src{font-size:8px;color:var(--dim);margin-top:3px;font-family:'JetBrains Mono',monospace}
+
+/* Drawer overlay */
+.drawer-overlay{display:none !important;
+  position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:115;
+  opacity:0;pointer-events:none;transition:opacity 0.3s;
+}
+.drawer-overlay.active{opacity:1;pointer-events:auto}
+
+/* ═══════════════════ ANIMATIONS ═══════════════════ */
+@keyframes logo-breathe{0%,100%{opacity:0.4;transform:scale(1)}50%{opacity:0.8;transform:scale(1.1)}}
+@keyframes t-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.3;transform:scale(0.5)}}
+@keyframes pulse-d{0%,100%{opacity:1;box-shadow:0 0 4px currentColor}50%{opacity:0.5;box-shadow:0 0 10px currentColor}}
+@keyframes msg-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes note-in{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
+@keyframes heartbeat{0%,70%,100%{transform:scale(1)}80%{transform:scale(1.5)}}
+@keyframes blink{50%{opacity:0}}
+@keyframes notif-in{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes notif-out{to{opacity:0;transform:translateX(40px) scale(0.95)}}
+@keyframes dur-pop{from{transform:scale(0.8);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes mic-glow{0%,100%{box-shadow:0 0 0 0 rgba(0,212,255,0.2)}50%{box-shadow:0 0 0 8px rgba(0,212,255,0)}}
+@keyframes scan-line{0%{top:0;opacity:0.6}100%{top:100%;opacity:0}}
+
+/* ═══════════════════ CAPABILITIES MODAL ═══════════════════ */
+.cap-modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;
+  display:none;align-items:center;justify-content:center;
+  backdrop-filter:blur(8px);animation:cap-overlay-in 0.25s ease;
+}
+.cap-modal-overlay.active{display:flex}
+@keyframes cap-overlay-in{from{opacity:0}to{opacity:1}}
+
+.cap-modal{
+  width:680px;max-width:92vw;max-height:82vh;
+  background:var(--bg2);border:1px solid var(--border-h);
+  border-radius:20px;overflow:hidden;display:flex;flex-direction:column;
+  box-shadow:0 24px 80px rgba(0,0,0,0.6),0 0 1px rgba(0,212,255,0.15);
+  animation:cap-modal-in 0.35s cubic-bezier(0.175,0.885,0.32,1.275);
+}
+@keyframes cap-modal-in{from{opacity:0;transform:scale(0.92) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+
+.cap-modal-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 20px;border-bottom:1px solid var(--border);
+  background:var(--panel);flex-shrink:0;
+}
+.cap-modal-title{
+  font-size:15px;font-weight:700;letter-spacing:1px;
+  background:linear-gradient(135deg,var(--cyan),var(--purple));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.cap-modal-close{
+  width:32px;height:32px;border-radius:10px;border:1px solid var(--border);
+  background:none;color:var(--dim);font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all 0.2s;
+}
+.cap-modal-close:hover{border-color:var(--red);color:var(--red);background:rgba(232,64,64,0.08)}
+
+.cap-modal-body{
+  flex:1;overflow-y:auto;padding:16px 20px 24px;
+}
+
+.cap-category{margin-bottom:20px}
+.cap-category:last-child{margin-bottom:0}
+.cap-cat-header{
+  font-size:10px;letter-spacing:2.5px;text-transform:uppercase;
+  font-weight:700;margin-bottom:10px;padding-bottom:6px;
+  border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;
+}
+
+.cap-item{
+  padding:10px 12px;border-radius:12px;margin-bottom:6px;
+  background:rgba(255,255,255,0.015);border:1px solid transparent;
+  transition:all 0.2s;cursor:default;
+}
+.cap-item:hover{background:rgba(74,144,217,0.04);border-color:var(--border)}
+
+.cap-item-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.cap-item-icon{font-size:16px;flex-shrink:0;width:22px;text-align:center}
+.cap-item-name{font-size:12px;font-weight:600;color:var(--text)}
+.cap-item-dash{font-size:11px;color:var(--dim);margin-left:4px}
+.cap-item-desc{font-size:11px;color:var(--text2);line-height:1.5}
+
+.cap-example{
+  margin-top:5px;padding:4px 8px;border-radius:8px;
+  background:rgba(0,212,255,0.03);border:1px solid rgba(0,212,255,0.06);
+  font-size:10px;color:var(--cyan);font-family:'JetBrains Mono',monospace;
+  cursor:pointer;transition:all 0.2s;display:inline-block;margin-right:4px;
+}
+.cap-example:hover{background:rgba(0,212,255,0.08);border-color:rgba(0,212,255,0.15);transform:translateY(-1px)}
+
+/* ═══════════════════ WELCOME SECTION ═══════════════════ */
+.welcome-section{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  flex:1;padding:40px 20px;animation:fadeUp 0.6s ease 0.5s forwards;opacity:0;
+  pointer-events:auto;
+}
+.welcome-greeting{
+  font-size:22px;font-weight:600;color:var(--text);text-align:center;
+  margin-bottom:8px;line-height:1.5;
+}
+.welcome-sub{
+  font-size:13px;color:var(--text2);text-align:center;margin-bottom:28px;
+}
+.welcome-actions{
+  display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:500px;
+}
+.welcome-btn{
+  padding:10px 20px;border-radius:14px;
+  border:1px solid var(--border-h);background:rgba(255,255,255,0.02);
+  color:var(--text);font-size:12px;font-weight:500;cursor:pointer;
+  transition:all 0.25s;display:flex;align-items:center;gap:7px;
+  backdrop-filter:blur(8px);
+}
+.welcome-btn:hover{
+  border-color:var(--cyan);background:rgba(0,212,255,0.06);
+  transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,212,255,0.08);
+}
+.welcome-btn .wb-icon{font-size:15px}
+.welcome-btn .wb-text{letter-spacing:0.3px}
+
+/* Header capabilities button */
+.btn-cap,.btn-guide{
+  padding:5px 12px;border-radius:8px;border:1px solid var(--border);
+  background:rgba(123,104,238,0.06);color:var(--purple);font-size:10px;font-weight:600;
+  cursor:pointer;letter-spacing:0.5px;transition:all 0.2s;display:flex;align-items:center;gap:5px;
+}
+.btn-cap:hover,.btn-guide:hover{border-color:var(--purple);background:rgba(123,104,238,0.12);transform:translateY(-1px)}
+.btn-guide{color:var(--cyan);background:rgba(0,212,255,0.06)}
+.btn-guide:hover{border-color:var(--cyan);background:rgba(0,212,255,0.12)}
+
+/* ═══════════════════ GUIDE OVERLAY ═══════════════════ */
+.guide-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:600;
+  display:none;backdrop-filter:blur(12px);
+  animation:guide-fade-in 0.3s ease;
+}
+.guide-overlay.active{display:flex}
+@keyframes guide-fade-in{from{opacity:0}to{opacity:1}}
+
+.guide-container{
+  width:100%;height:100%;display:flex;
+  animation:guide-slide-up 0.4s cubic-bezier(0.175,0.885,0.32,1.1);
+}
+@keyframes guide-slide-up{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+
+/* Guide Sidebar */
+.guide-sidebar{
+  width:260px;min-width:260px;background:#080e1a;border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.guide-sidebar-header{
+  padding:20px 20px 16px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.guide-sidebar-brand{
+  font-size:18px;font-weight:800;letter-spacing:2px;
+  background:linear-gradient(135deg,var(--cyan),var(--purple));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:4px;
+}
+.guide-sidebar-sub{font-size:10px;color:var(--dim);letter-spacing:1px}
+.guide-nav{flex:1;overflow-y:auto;padding:12px 0}
+.guide-nav-item{
+  display:flex;align-items:center;gap:10px;padding:10px 20px;
+  font-size:12px;color:var(--text2);cursor:pointer;transition:all 0.2s;
+  border-left:3px solid transparent;position:relative;
+}
+.guide-nav-item:hover{background:rgba(0,212,255,0.04);color:var(--text)}
+.guide-nav-item.active{
+  background:rgba(0,212,255,0.06);color:var(--cyan);
+  border-left-color:var(--cyan);font-weight:600;
+}
+.guide-nav-icon{font-size:16px;width:24px;text-align:center;flex-shrink:0}
+.guide-nav-label{flex:1}
+.guide-nav-badge{
+  font-size:8px;padding:2px 6px;border-radius:8px;
+  background:rgba(0,212,255,0.1);color:var(--cyan);font-weight:600;
+}
+
+/* Guide Main Content */
+.guide-main{
+  flex:1;display:flex;flex-direction:column;background:#0d1117;overflow:hidden;
+}
+.guide-main-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 28px;border-bottom:1px solid var(--border);flex-shrink:0;
+  background:rgba(8,14,28,0.8);
+}
+.guide-main-title{font-size:16px;font-weight:700;color:var(--text)}
+.guide-close{
+  width:36px;height:36px;border-radius:10px;border:1px solid var(--border);
+  background:none;color:var(--dim);font-size:18px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all 0.2s;
+}
+.guide-close:hover{border-color:var(--red);color:var(--red);background:rgba(232,64,64,0.08)}
+.guide-content{
+  flex:1;overflow-y:auto;padding:28px;
+  scroll-behavior:smooth;
+}
+
+/* Guide Section (each page) */
+.guide-section{display:none;animation:guide-section-in 0.3s ease}
+.guide-section.active{display:block}
+@keyframes guide-section-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* Guide Cards */
+.guide-hero-card{
+  background:linear-gradient(135deg,rgba(0,212,255,0.06),rgba(123,104,238,0.06));
+  border:1px solid rgba(0,212,255,0.12);border-radius:16px;
+  padding:28px;margin-bottom:24px;text-align:center;
+}
+.guide-hero-title{
+  font-size:22px;font-weight:800;margin-bottom:8px;
+  background:linear-gradient(135deg,var(--cyan),var(--blue),var(--purple));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.guide-hero-desc{font-size:13px;color:var(--text2);line-height:1.7;max-width:520px;margin:0 auto 20px}
+.guide-stats{display:flex;justify-content:center;gap:16px;flex-wrap:wrap}
+.guide-stat{
+  padding:10px 18px;border-radius:12px;
+  background:rgba(255,255,255,0.03);border:1px solid var(--border);
+  text-align:center;min-width:100px;
+}
+.guide-stat-num{font-size:20px;font-weight:800;color:var(--cyan);font-family:'JetBrains Mono',monospace}
+.guide-stat-label{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px}
+
+/* Timeline */
+.guide-timeline{margin:20px 0}
+.guide-time-block{
+  margin-bottom:20px;padding:16px 20px;border-radius:14px;
+  background:rgba(255,255,255,0.015);border:1px solid var(--border);
+  transition:all 0.25s;position:relative;overflow:hidden;
+}
+.guide-time-block:hover{border-color:var(--border-h);background:rgba(255,255,255,0.025)}
+.guide-time-block::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  border-radius:0 3px 3px 0;
+}
+.guide-time-block.morning::before{background:linear-gradient(180deg,#f59e0b,#f97316)}
+.guide-time-block.prep::before{background:linear-gradient(180deg,var(--blue),var(--purple))}
+.guide-time-block.court::before{background:linear-gradient(180deg,var(--purple),var(--pink))}
+.guide-time-block.exec::before{background:linear-gradient(180deg,var(--green),var(--cyan))}
+.guide-time-block.evening::before{background:linear-gradient(180deg,var(--blue),#6366f1)}
+.guide-time-header{
+  display:flex;align-items:center;gap:10px;margin-bottom:10px;
+}
+.guide-time-icon{font-size:20px}
+.guide-time-label{font-size:13px;font-weight:700;color:var(--text)}
+.guide-time-hour{font-size:10px;color:var(--dim);font-family:'JetBrains Mono',monospace;margin-left:auto}
+.guide-time-row{
+  display:flex;align-items:flex-start;gap:10px;padding:6px 0;
+  border-bottom:1px solid rgba(255,255,255,0.02);
+}
+.guide-time-row:last-child{border-bottom:none}
+.guide-time-prompt{
+  flex:1;font-size:11px;color:var(--cyan);font-family:'JetBrains Mono',monospace;
+  cursor:pointer;transition:all 0.15s;padding:4px 8px;border-radius:6px;
+}
+.guide-time-prompt:hover{background:rgba(0,212,255,0.06)}
+.guide-time-result{font-size:10px;color:var(--dim);white-space:nowrap}
+
+/* Tool Card */
+.guide-tool{
+  padding:16px 20px;border-radius:14px;margin-bottom:12px;
+  background:rgba(255,255,255,0.015);border:1px solid var(--border);
+  transition:all 0.25s;
+}
+.guide-tool:hover{border-color:var(--border-h);background:rgba(255,255,255,0.025)}
+.guide-tool.highlight{
+  border-color:rgba(0,212,255,0.2);
+  background:linear-gradient(135deg,rgba(0,212,255,0.04),rgba(123,104,238,0.03));
+}
+.guide-tool-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.guide-tool-icon{font-size:20px;width:28px;text-align:center}
+.guide-tool-name{font-size:14px;font-weight:700;color:var(--text)}
+.guide-tool-badge{
+  font-size:8px;padding:2px 8px;border-radius:8px;margin-left:auto;
+  background:rgba(0,212,255,0.1);color:var(--cyan);font-weight:700;letter-spacing:1px;
+}
+.guide-tool-desc{font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:10px}
+.guide-tool-examples{display:flex;flex-direction:column;gap:4px}
+.guide-try-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 12px;border-radius:8px;border:1px solid rgba(0,212,255,0.12);
+  background:rgba(0,212,255,0.04);color:var(--cyan);font-size:11px;
+  font-family:'JetBrains Mono',monospace;cursor:pointer;transition:all 0.2s;
+}
+.guide-try-btn:hover{
+  background:rgba(0,212,255,0.1);border-color:rgba(0,212,255,0.25);
+  transform:translateX(4px);
+}
+.guide-try-arrow{font-size:10px;opacity:0.6;transition:all 0.2s}
+.guide-try-btn:hover .guide-try-arrow{opacity:1;transform:translateX(2px)}
+
+/* Tips */
+.guide-tip{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:14px 16px;border-radius:12px;margin-bottom:8px;
+  background:rgba(255,255,255,0.015);border:1px solid var(--border);
+  transition:all 0.2s;
+}
+.guide-tip:hover{background:rgba(255,255,255,0.025);border-color:var(--border-h)}
+.guide-tip-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.guide-tip-text{font-size:12px;color:var(--text2);line-height:1.6}
+.guide-tip-text strong{color:var(--text);font-weight:600}
+
+/* Section Title */
+.guide-sec-title{
+  font-size:10px;letter-spacing:2.5px;text-transform:uppercase;font-weight:700;
+  margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border);
+  color:var(--text2);display:flex;align-items:center;gap:8px;
+}
+.guide-sec-title span{font-size:14px}
+
+/* Mobile responsive */
+@media(max-width:768px){
+  .guide-container{flex-direction:column}
+  .guide-sidebar{
+    width:100%;min-width:unset;max-height:50vh;
+    border-right:none;border-bottom:1px solid var(--border);
+  }
+  .guide-nav{display:flex;flex-wrap:wrap;padding:8px 12px;gap:4px}
+  .guide-nav-item{
+    padding:6px 12px;border-radius:8px;border-left:none;
+    border:1px solid var(--border);font-size:11px;
+  }
+  .guide-nav-item.active{border-color:var(--cyan);background:rgba(0,212,255,0.08)}
+  .guide-nav-icon{font-size:13px;width:auto}
+  .guide-stats{gap:8px}
+  .guide-stat{min-width:80px;padding:8px 12px}
+  .guide-stat-num{font-size:16px}
+  .guide-content{padding:16px}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ FULL-SCREEN BRAIN CANVAS ═══════════ -->
+<canvas id="brainCanvas"></canvas>
+<div class="brain-label" id="brainLabel">HAZIR</div>
+<div class="audio-meter"><div class="audio-meter-fill" id="audioMeter"></div></div>
+
+<!-- ═══════════ HEADER ═══════════ -->
+<header>
+  <div class="brand">
+    <div class="brand-logo"></div>
+    <span class="brand-name">ALI</span>
+    <span class="brand-ver">v2.0</span>
+  </div>
+  <div class="hdr-center">
+    <span class="badge badge-model" id="hModel">SONNET 4</span>
+    <span class="badge badge-domain" id="hDomain">GENEL</span>
+    <span class="badge badge-switch" id="hSwitch"><span class="switch-dot" id="hSwitchDot"></span><span id="hSwitchName"></span><span class="switch-reason" id="hSwitchReason"></span></span>
+    <span class="badge badge-think" id="hThink"><span class="think-dots"><span></span><span></span><span></span></span><span id="hThinkText">D&#220;&#350;&#220;N&#220;YOR</span></span>
+  </div>
+  <div class="hdr-right">
+    <button class="btn-guide" id="btnGuide" title="Rehber">&#128214; Rehber</button>
+    <button class="btn-cap" id="btnCap" title="Yetenekler">&#10067; Yetenekler</button>
+    <button class="btn-dur" id="btnDur" title="&#304;&#351;lemi iptal et">DUR</button>
+    <div class="conn">
+      <span class="conn-lbl" id="connLbl">Ba&#287;lan&#305;yor</span>
+      <div class="conn-dot" id="connDot"></div>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════ DRAWER TOGGLES ═══════════ -->
+<div class="drawer-toggle-left" id="toggleLeft" title="Ara&#231;lar">&#9776;</div>
+<div class="drawer-toggle-right" id="toggleRight" title="Panel">&#9881;</div>
+<div class="drawer-overlay" id="drawerOverlay"></div>
+
+<!-- ═══════════ MAIN ═══════════ -->
+<div class="main">
+
+  <!-- LEFT: Tool Rack (drawer) -->
+  <div class="panel-l" id="toolRack"></div>
+
+  <!-- CENTER -->
+  <div class="panel-c">
+    <!-- Hidden model bar for JS compatibility -->
+    <div class="model-bar">
+      <div class="m-chip" id="cGemini" data-m="gemini"><div class="m-dot" style="background:#4285f4"></div>GEMINI</div>
+      <div class="m-chip" id="cHaiku" data-m="haiku"><div class="m-dot" style="background:var(--green)"></div>HAIKU</div>
+      <div class="m-chip" id="cSonnet" data-m="sonnet"><div class="m-dot" style="background:var(--blue)"></div>SONNET</div>
+      <div class="m-chip" id="cFast" data-m="fast"><div class="m-dot" style="background:var(--gold)"></div>FAST-PATH</div>
+    </div>
+    <div class="chat-area" id="chatArea">
+      <!-- Welcome Section -->
+      <div class="welcome-section" id="welcomeSection">
+        <div class="welcome-greeting">Merhaba! Ben <strong style="color:var(--cyan)">Ali</strong>, hukuk AI asistan&#305;n&#305;z.</div>
+        <div class="welcome-sub">Size nas&#305;l yard&#305;mc&#305; olabilirim?</div>
+        <div class="welcome-actions">
+          <button class="welcome-btn" onclick="welcomeAction('Mevzuat ara')"><span class="wb-icon">&#128218;</span><span class="wb-text">Mevzuat Ara</span></button>
+          <button class="welcome-btn" onclick="welcomeAction('Dilek\u00e7e yaz')"><span class="wb-icon">&#128196;</span><span class="wb-text">Dilek&ccedil;e Yaz</span></button>
+          <button class="welcome-btn" onclick="welcomeAction('Duru\u015fma ekle')"><span class="wb-icon">&#128197;</span><span class="wb-text">Duru&#351;ma Ekle</span></button>
+          <button class="welcome-btn" onclick="welcomeAction('Ceza hesapla')"><span class="wb-icon">&#128290;</span><span class="wb-text">Ceza Hesapla</span></button>
+          <button class="welcome-btn" onclick="welcomeAction('Yarg\u0131 karar\u0131 ara')"><span class="wb-icon">&#9878;&#65039;</span><span class="wb-text">Yarg&#305; Karar&#305; Ara</span></button>
+          <button class="welcome-btn" onclick="welcomeAction('M\u00fcvekkil kaydet')"><span class="wb-icon">&#128101;</span><span class="wb-text">M&uuml;vekkil Kaydet</span></button>
+          <button class="welcome-btn" onclick="welcomeAction('\u0130cra hesapla')"><span class="wb-icon">&#127974;</span><span class="wb-text">&#304;cra Hesapla</span></button>
+          <button class="welcome-btn" onclick="welcomeAction('Dosyalar\u0131 analiz et')"><span class="wb-icon">&#128194;</span><span class="wb-text">Dosya Analiz Et</span></button>
+        </div>
+      </div>
+    </div>
+    <div class="input-wrap">
+      <button class="btn-mute" id="btnMute" title="Mikrofonu Sessize Al (K)">&#127897;&#65039;</button>
+      <button class="btn-mic" id="btnMic" title="Sesli konu&#351; (M)">&#127908;</button>
+      <input type="text" id="msgInput" placeholder="Mesaj yaz veya sesli konu&#351;..." autocomplete="off">
+      <button class="btn-send" id="btnSend">G&#246;nder</button>
+      <span class="shortcut-hint">&#9166;</span>
+    </div>
+  </div>
+
+  <!-- RIGHT (drawer) -->
+  <div class="panel-r">
+    <!-- Thinking Process (floating overlay) -->
+    <div class="r-sec" id="thinkSec" style="display:none">
+      <div class="r-title" style="color:var(--amber)">&#129504; D&#220;&#350;&#220;NME S&#220;REC&#304;</div>
+      <div id="thinkSteps"></div>
+      <div class="think-timer" id="thinkTimer"></div>
+    </div>
+    <!-- Notes -->
+    <div class="r-sec">
+      <div class="r-title" style="color:var(--cyan)">NOTLAR</div>
+      <div id="notes"></div>
+    </div>
+    <!-- Stats -->
+    <div class="r-sec">
+      <div class="r-title" style="color:var(--gold)">&#304;STAT&#304;ST&#304;K</div>
+      <div>
+        <div class="stat-row"><span class="stat-lbl">&#304;&#351;lem</span><span class="stat-v" id="sCount">0</span></div>
+        <div class="stat-row"><span class="stat-lbl">Token</span><span class="stat-v" id="sToken">0</span></div>
+        <div class="stat-row"><span class="stat-lbl">Ort. Gecikme</span><span class="stat-v" id="sLatency">&mdash;</span></div>
+        <div class="stat-row"><span class="stat-lbl">Son Model</span><span class="stat-v" id="sModel">&mdash;</span></div>
+      </div>
+    </div>
+    <!-- Cost -->
+    <div class="r-sec">
+      <div class="r-title" style="color:var(--green)">MAL&#304;YET</div>
+      <div>
+        <div class="cost-row"><span class="stat-lbl">Bug&#252;n</span><span class="cost-v" id="costToday">$0.00</span></div>
+        <div class="cost-row"><span class="stat-lbl">Toplam</span><span class="cost-v" id="costTotal">$0.00</span></div>
+      </div>
+    </div>
+    <!-- Health -->
+    <div class="r-sec">
+      <div class="r-title" style="color:var(--purple)">S&#304;STEM SA&#286;LI&#286;I <button class="r-btn" id="btnScan">TARA</button></div>
+      <div id="health">
+        <div class="h-row"><div class="h-dot h-off" id="hAnthro"></div><span class="h-lbl">Anthropic API</span><span class="h-val" id="hAnthroV">&mdash;</span></div>
+        <div class="h-row"><div class="h-dot h-off" id="hDb"></div><span class="h-lbl">Mevzuat MCP</span><span class="h-val" id="hDbV">&mdash;</span></div>
+        <div class="h-row"><div class="h-dot h-off" id="hTg"></div><span class="h-lbl">Yargı MCP</span><span class="h-val" id="hTgV">&mdash;</span></div>
+        <div class="h-row"><div class="h-dot h-off" id="hVoice"></div><span class="h-lbl">Voice Engine</span><span class="h-val" id="hVoiceV">&mdash;</span></div>
+        <div class="h-row"><div class="h-dot h-off" id="hLatency"></div><span class="h-lbl">Gecikme</span><span class="h-val" id="hLatencyV">&mdash;</span></div>
+      </div>
+    </div>
+    <!-- Capabilities -->
+    <div class="r-sec">
+      <div class="r-title" style="color:var(--blue)">YETENEKLER</div>
+      <div id="caps"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<footer>
+  <div class="f-left">
+    <div class="daemon"><div class="d-dot" id="dWeb"></div>WEB</div>
+    <div class="daemon"><div class="d-dot" id="dMcp"></div>MCP</div>
+    <div class="daemon"><div class="d-dot" id="dVoice"></div>VOICE</div>
+    <div class="daemon"><div class="d-dot" id="dBrain"></div>CLAUDE</div>
+  </div>
+  <div class="f-center">ALI INTELLIGENCE</div>
+  <div class="f-right">
+    <button class="f-btn" id="btnSession">YEN&#304; OTURUM</button>
+  </div>
+</footer>
+
+<!-- ═══════════ CAPABILITIES MODAL ═══════════ -->
+<div class="cap-modal-overlay" id="capOverlay">
+  <div class="cap-modal">
+    <div class="cap-modal-header">
+      <span class="cap-modal-title">ALI YETENEKLER&#304;</span>
+      <button class="cap-modal-close" id="capClose">&times;</button>
+    </div>
+    <div class="cap-modal-body">
+
+      <!-- Hukuk Araclari -->
+      <div class="cap-category">
+        <div class="cap-cat-header" style="color:var(--purple)">&#9878;&#65039; HUKUK ARA&#199;LARI</div>
+
+        <div class="cap-item">
+          <div class="cap-item-head"><span class="cap-item-icon">&#128218;</span><span class="cap-item-name">Mevzuat Arama</span><span class="cap-item-dash">&mdash; Kanun, KHK, t&uuml;z&uuml;k, y&ouml;netmelik arama</span></div>
+          <div class="cap-example" onclick="capPrompt('TCK 157 doland\u0131r\u0131c\u0131l\u0131k maddesini ara')">TCK 157 doland&#305;r&#305;c&#305;l&#305;k maddesini ara</div>
+          <div class="cap-example" onclick="capPrompt('Kira s\u00f6zle\u015fmesiyle ilgili kanun maddelerini bul')">Kira s&ouml;zle&#351;mesiyle ilgili kanun maddelerini bul</div>
+        </div>
+
+        <div class="cap-item">
+          <div class="cap-item-head"><span class="cap-item-icon">&#9878;&#65039;</span><span class="cap-item-name">Yarg&#305; Kararlar&#305;</span><span class="cap-item-dash">&mdash; Yarg&#305;tay, Dan&#305;&#351;tay, Anayasa Mahkemesi kararlar&#305;</span></div>
+          <div class="cap-example" onclick="capPrompt('Yarg\u0131tay i\u015f kazas\u0131 tazminat kararlar\u0131n\u0131 ara')">Yarg&#305;tay i&#351; kazas&#305; tazminat kararlar&#305;n&#305; ara</div>
+        </div>
+
+        <div class="cap-item">
+          <div class="cap-item-head"><span class="cap-item-icon">&#128290;</span><span class="cap-item-name">Ceza Hesaplama</span><span class="cap-item-dash">&mdash; TCK'ya g&ouml;re ceza hesaplama (a&#287;&#305;rla&#351;t&#305;r&#305;c&#305;/hafifletici)</span></div>
+          <div class="cap-example" onclick="capPrompt('TCK 157 doland\u0131r\u0131c\u0131l\u0131k i\u00e7in ceza hesapla, iyi hal indirimi uygula')">TCK 157 doland&#305;r&#305;c&#305;l&#305;k i&ccedil;in ceza hesapla, iyi hal indirimi uygula</div>
+        </div>
+
+        <div class="cap-item">
+          <div class="cap-item-head"><span class="cap-item-icon">&#128196;</span><span class="cap-item-name">Belge Olu&#351;turma</span><span class="cap-item-dash">&mdash; Dilek&ccedil;e, savunma, itiraz yazma (DOCX)</span></div>
+          <div class="cap-example" onclick="capPrompt('Kira uyu\u015fmazl\u0131\u011f\u0131 i\u00e7in ihtarname yaz')">Kira uyu&#351;mazl&#305;&#287;&#305; i&ccedil;in ihtarname yaz</div>
+          <div class="cap-example" onclick="capPrompt('Tahliye davas\u0131 i\u00e7in cevap dilek\u00e7esi haz\u0131rla')">Tahliye davas&#305; i&ccedil;in cevap dilek&ccedil;esi haz&#305;rla</div>
+        </div>
+
+        <div class="cap-item">
+          <div class="cap-item-head"><span class="cap-item-icon">&#128197;</span><span class="cap-item-name">Duru&#351;ma Takvimi</span><span class="cap-item-dash">&mdash; Duru&#351;ma ekleme, yakla&#351;an 48 saat uyar&#305;s&#305;</span></div>
+          <div class="cap-example" onclick="capPrompt('Yar\u0131nki duru\u015fmay\u0131 ekle, saat 10:00, \u0130stanbul 3. A\u011f\u0131r Ceza')">Yar&#305;nki duru&#351;may&#305; ekle, saat 10:00, &#304;stanbul 3. A&#287;&#305;r Ceza</div>
+        </div>
+
+        <div class="cap-item">
+          <div class="cap-item-head"><span class="cap-item-icon">&#128101;</span><span class="cap-item-name">M&uuml;vekkil Takip</span><span class="cap-item-dash">&mdash; M&uuml;vekkil bilgisi, dava atamas&#305;, notlar</span></div>
+          <div class="cap-example" onclick="capPrompt('M\u00fcvekkil Ahmet Y\u0131lmaz\u2019\u0131 kaydet')">M&uuml;vekkil Ahmet Y&#305;lmaz&rsquo;&#305; kaydet</div>
+        </div>
+
+        <div class="cap-item">
+          <div class="cap-item-head"><span class="cap-item-icon">&#9201;</span><span class="cap-item-name">Zaman Takip</span><span class="cap-item-dash">&mdash; Faturalanabilir saat ba&#351;lat/durdur/rapor</span></div>
+          <div class="cap-example" onclick="capPrompt('Ahmet Y\u0131lmaz dosyas\u0131 i\u00e7in zaman takibi ba\u015flat')">Ahmet Y&#305;lmaz dosyas&#305; i&ccedil;in zaman takibi ba&#351;lat</div>
+        </div>
+
+        <div class="cap-item">
+          <div class="cap-item-head"><span class="cap-item-icon">&#128214;</span><span class="cap-item-name">Bilgi Bankas&#305;</span><span class="cap-item-dash">&mdash; TCK, CMK, savunma teknikleri</span></div>
+          <div class="cap-example" onclick="capPrompt('Me\u015fru m\u00fcdafaa ko\u015fullar\u0131n\u0131 a\u00e7\u0131kla')">Me&#351;ru m&uuml;dafaa ko&#351;ullar&#305;n&#305; a&ccedil;&#305;kla</div>
+        </div>
+
+        <div class="cap-item">
+          <div class="cap-item-head"><span class="cap-item-icon">&#128176;</span><span class="cap-item-name">Masraf Takip</span><span class="cap-item-dash">&mdash; Dava bazl&#305; masraf/gider takibi</span></div>
+          <div class="cap-example" onclick="capPrompt('Y\u0131lmaz dosyas\u0131na 500 TL bilirki\u015fi masraf\u0131 ekle')">Y&#305;lmaz dosyas&#305;na 500 TL bilirki&#351;i masraf&#305; ekle</div>
+        </div>
+
+        <div class="cap-item">
+          <div class="cap-item-head"><span class="cap-item-icon">&#127974;</span><span class="cap-item-name">&#304;cra Hesaplama</span><span class="cap-item-dash">&mdash; Faiz, har&ccedil;, vekalet &uuml;creti hesaplama</span></div>
+          <div class="cap-example" onclick="capPrompt('50.000 TL i\u00e7in icra hesab\u0131 yap, 01.01.2025\u2019ten itibaren')">50.000 TL i&ccedil;in icra hesab&#305; yap, 01.01.2025&rsquo;ten itibaren</div>
+        </div>
+
+        <div class="cap-item">
+          <div class="cap-item-head"><span class="cap-item-icon">&#9989;</span><span class="cap-item-name">Duru&#351;ma Haz&#305;rl&#305;k</span><span class="cap-item-dash">&mdash; Duru&#351;ma haz&#305;rl&#305;k kontrol listesi</span></div>
+          <div class="cap-example" onclick="capPrompt('Yar\u0131nki ceza duru\u015fmas\u0131 i\u00e7in haz\u0131rl\u0131k listesi olu\u015ftur')">Yar&#305;nki ceza duru&#351;mas&#305; i&ccedil;in haz&#305;rl&#305;k listesi olu&#351;tur</div>
+        </div>
+
+        <div class="cap-item">
+          <div class="cap-item-head"><span class="cap-item-icon">&#128236;</span><span class="cap-item-name">Tebligat Takip</span><span class="cap-item-dash">&mdash; Tebligat takibi ve s&uuml;re hesaplama</span></div>
+          <div class="cap-example" onclick="capPrompt('21/2 tebligat\u0131 kaydet, tebli\u011f tarihi 20.03.2026')">21/2 tebligat&#305; kaydet, tebli&#287; tarihi 20.03.2026</div>
+        </div>
+
+        <div class="cap-item">
+          <div class="cap-item-head"><span class="cap-item-icon">&#128203;</span><span class="cap-item-name">Vekalet Takip</span><span class="cap-item-dash">&mdash; Vekaletname ve azilname takibi</span></div>
+          <div class="cap-example" onclick="capPrompt('Yeni dava vekaleti kaydet, m\u00fcvekkil Ahmet Y\u0131lmaz')">Yeni dava vekaleti kaydet, m&uuml;vekkil Ahmet Y&#305;lmaz</div>
+        </div>
+
+        <div class="cap-item">
+          <div class="cap-item-head"><span class="cap-item-icon">&#128194;</span><span class="cap-item-name">Dosya Analiz</span><span class="cap-item-dash">&mdash; Toplu PDF/Word belge analizi</span></div>
+          <div class="cap-example" onclick="capPrompt('Masa\u00fcst\u00fcndeki Dava klas\u00f6r\u00fcn\u00fc analiz et, eksikleri bul')">Masa&uuml;st&uuml;ndeki Dava klas&ouml;r&uuml;n&uuml; analiz et, eksikleri bul</div>
+        </div>
+      </div>
+
+      <!-- Bilgisayar -->
+      <div class="cap-category">
+        <div class="cap-cat-header" style="color:var(--green)">&#128187; B&#304;LG&#304;SAYAR</div>
+
+        <div class="cap-item">
+          <div class="cap-item-head"><span class="cap-item-icon">&#128421;&#65039;</span><span class="cap-item-name">Ekran Yakalama</span><span class="cap-item-dash">&mdash; Ekran g&ouml;r&uuml;nt&uuml;s&uuml; ve analiz</span></div>
+          <div class="cap-example" onclick="capPrompt('Ekran g\u00f6r\u00fcnt\u00fcs\u00fc al ve analiz et')">Ekran g&ouml;r&uuml;nt&uuml;s&uuml; al ve analiz et</div>
+        </div>
+
+        <div class="cap-item">
+          <div class="cap-item-head"><span class="cap-item-icon">&#128193;</span><span class="cap-item-name">Dosya &#304;&#351;lemleri</span><span class="cap-item-dash">&mdash; Dosya olu&#351;turma, okuma, ta&#351;&#305;ma</span></div>
+          <div class="cap-example" onclick="capPrompt('Masa\u00fcst\u00fcndeki dosyalar\u0131 listele')">Masa&uuml;st&uuml;ndeki dosyalar&#305; listele</div>
+        </div>
+
+        <div class="cap-item">
+          <div class="cap-item-head"><span class="cap-item-icon">&#9881;&#65039;</span><span class="cap-item-name">Sistem</span><span class="cap-item-dash">&mdash; Ses, parlakl&#305;k, bilgisayar kontrol&uuml;</span></div>
+          <div class="cap-example" onclick="capPrompt('Sesi %50 yap')">Sesi %50 yap</div>
+        </div>
+
+        <div class="cap-item">
+          <div class="cap-item-head"><span class="cap-item-icon">&#127760;</span><span class="cap-item-name">Taray&#305;c&#305;</span><span class="cap-item-dash">&mdash; Web sayfas&#305; a&ccedil;ma ve okuma</span></div>
+          <div class="cap-example" onclick="capPrompt('google.com a\u00e7')">google.com a&ccedil;</div>
+        </div>
+
+        <div class="cap-item">
+          <div class="cap-item-head"><span class="cap-item-icon">&#128241;</span><span class="cap-item-name">Uygulama A&ccedil;ma</span><span class="cap-item-dash">&mdash; Uygulama ba&#351;latma</span></div>
+          <div class="cap-example" onclick="capPrompt('Safari uygulamas\u0131n\u0131 a\u00e7')">Safari uygulamas&#305;n&#305; a&ccedil;</div>
+        </div>
+      </div>
+
+      <!-- Iletisim -->
+      <div class="cap-category">
+        <div class="cap-cat-header" style="color:var(--pink)">&#128172; &#304;LET&#304;&#350;&#304;M</div>
+
+        <div class="cap-item">
+          <div class="cap-item-head"><span class="cap-item-icon">&#128172;</span><span class="cap-item-name">WhatsApp</span><span class="cap-item-dash">&mdash; Mesaj g&ouml;nderme</span></div>
+          <div class="cap-example" onclick="capPrompt('WhatsApp\u2019tan Ali\u2019ye mesaj g\u00f6nder')">WhatsApp&rsquo;tan Ali&rsquo;ye mesaj g&ouml;nder</div>
+        </div>
+
+        <div class="cap-item">
+          <div class="cap-item-head"><span class="cap-item-icon">&#129302;</span><span class="cap-item-name">Telegram</span><span class="cap-item-dash">&mdash; Bot &uuml;zerinden mesajla&#351;ma</span></div>
+          <div class="cap-example" onclick="capPrompt('Telegram\u2019dan son mesajlar\u0131 kontrol et')">Telegram&rsquo;dan son mesajlar&#305; kontrol et</div>
+        </div>
+      </div>
+
+      <!-- Genel -->
+      <div class="cap-category">
+        <div class="cap-cat-header" style="color:var(--cyan)">&#128640; GENEL</div>
+
+        <div class="cap-item">
+          <div class="cap-item-head"><span class="cap-item-icon">&#128221;</span><span class="cap-item-name">Not Al</span><span class="cap-item-dash">&mdash; Not kaydetme, arama, etiketleme</span></div>
+          <div class="cap-example" onclick="capPrompt('Bug\u00fcnk\u00fc toplant\u0131 notlar\u0131n\u0131 kaydet')">Bug&uuml;nk&uuml; toplant&#305; notlar&#305;n&#305; kaydet</div>
+        </div>
+
+        <div class="cap-item">
+          <div class="cap-item-head"><span class="cap-item-icon">&#128269;</span><span class="cap-item-name">Web Arama</span><span class="cap-item-dash">&mdash; &#304;nternet aramas&#305;</span></div>
+          <div class="cap-example" onclick="capPrompt('Yeni i\u015f kanunu de\u011fi\u015fikliklerini ara')">Yeni i&#351; kanunu de&#287;i&#351;ikliklerini ara</div>
+        </div>
+
+        <div class="cap-item">
+          <div class="cap-item-head"><span class="cap-item-icon">&#127780;&#65039;</span><span class="cap-item-name">Hava Durumu</span><span class="cap-item-dash">&mdash; Hava durumu bilgisi</span></div>
+          <div class="cap-example" onclick="capPrompt('\u0130stanbul hava durumu')">&#304;stanbul hava durumu</div>
+        </div>
+
+        <div class="cap-item">
+          <div class="cap-item-head"><span class="cap-item-icon">&#9200;</span><span class="cap-item-name">Hat&#305;rlat&#305;c&#305;</span><span class="cap-item-dash">&mdash; Zamanl&#305; hat&#305;rlatmalar</span></div>
+          <div class="cap-example" onclick="capPrompt('Yar\u0131n saat 9\u2019da duru\u015fmay\u0131 hat\u0131rlat')">Yar&#305;n saat 9&rsquo;da duru&#351;may&#305; hat&#305;rlat</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ GUIDE OVERLAY ═══════════ -->
+<div class="guide-overlay" id="guideOverlay">
+  <div class="guide-container">
+
+    <!-- Sidebar Navigation -->
+    <div class="guide-sidebar">
+      <div class="guide-sidebar-header">
+        <div class="guide-sidebar-brand">ALI REHBER</div>
+        <div class="guide-sidebar-sub">Hukuk Asistan&#305; Kullan&#305;m K&#305;lavuzu</div>
+      </div>
+      <div class="guide-nav" id="guideNav">
+        <div class="guide-nav-item active" data-section="welcome" onclick="guideGoTo('welcome')">
+          <span class="guide-nav-icon">&#127968;</span><span class="guide-nav-label">Ho&#351; Geldiniz</span>
+        </div>
+        <div class="guide-nav-item" data-section="workflow" onclick="guideGoTo('workflow')">
+          <span class="guide-nav-icon">&#9728;&#65039;</span><span class="guide-nav-label">G&#252;nl&#252;k &#304;&#351; Ak&#305;&#351;&#305;</span>
+          <span class="guide-nav-badge">WOW</span>
+        </div>
+        <div class="guide-nav-item" data-section="research" onclick="guideGoTo('research')">
+          <span class="guide-nav-icon">&#128218;</span><span class="guide-nav-label">Hukuki Ara&#351;t&#305;rma</span>
+        </div>
+        <div class="guide-nav-item" data-section="case" onclick="guideGoTo('case')">
+          <span class="guide-nav-icon">&#9878;&#65039;</span><span class="guide-nav-label">Dava Y&#246;netimi</span>
+        </div>
+        <div class="guide-nav-item" data-section="docs" onclick="guideGoTo('docs')">
+          <span class="guide-nav-icon">&#128196;</span><span class="guide-nav-label">Belge &#304;&#351;lemleri</span>
+        </div>
+        <div class="guide-nav-item" data-section="icra" onclick="guideGoTo('icra')">
+          <span class="guide-nav-icon">&#127974;</span><span class="guide-nav-label">&#304;cra &amp; Hesaplamalar</span>
+        </div>
+        <div class="guide-nav-item" data-section="office" onclick="guideGoTo('office')">
+          <span class="guide-nav-icon">&#127970;</span><span class="guide-nav-label">B&#252;ro Y&#246;netimi</span>
+        </div>
+        <div class="guide-nav-item" data-section="comms" onclick="guideGoTo('comms')">
+          <span class="guide-nav-icon">&#128172;</span><span class="guide-nav-label">&#304;leti&#351;im</span>
+        </div>
+        <div class="guide-nav-item" data-section="tips" onclick="guideGoTo('tips')">
+          <span class="guide-nav-icon">&#128161;</span><span class="guide-nav-label">&#304;pu&#231;lar&#305; &amp; P&#252;f Noktalar&#305;</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="guide-main">
+      <div class="guide-main-header">
+        <span class="guide-main-title" id="guideMainTitle">&#127968; Ho&#351; Geldiniz</span>
+        <button class="guide-close" id="guideClose" title="Kapat">&times;</button>
+      </div>
+      <div class="guide-content" id="guideContent">
+
+        <!-- ═══ HOS GELDINIZ ═══ -->
+        <div class="guide-section active" id="sec-welcome">
+          <div class="guide-hero-card">
+            <div class="guide-hero-title">ALI &mdash; Hukuk Asistan&#305;n&#305;z</div>
+            <div class="guide-hero-desc">Ali, avukatlar i&#231;in geli&#351;tirilmi&#351; yapay zeka destekli hukuk asistan&#305;d&#305;r. 27 profesyonel ara&#231; ile g&#252;nl&#252;k i&#351; ak&#305;&#351;&#305;n&#305;z&#305; h&#305;zland&#305;r&#305;r, tekrarl&#305; i&#351;lerinizi otomatikle&#351;tirir ve hukuki ara&#351;t&#305;rmalar&#305;n&#305;z&#305; g&#252;&#231;lendirir.</div>
+            <div class="guide-stats">
+              <div class="guide-stat"><div class="guide-stat-num">27</div><div class="guide-stat-label">Ara&#231;</div></div>
+              <div class="guide-stat"><div class="guide-stat-num">8</div><div class="guide-stat-label">Hukuk Mod&#252;l&#252;</div></div>
+              <div class="guide-stat"><div class="guide-stat-num" style="font-size:16px">&#127908;</div><div class="guide-stat-label">Sesli Komut</div></div>
+              <div class="guide-stat"><div class="guide-stat-num" style="font-size:16px">&#129504;</div><div class="guide-stat-label">Ak&#305;ll&#305; Haf&#305;za</div></div>
+            </div>
+          </div>
+          <div class="guide-sec-title"><span>&#128640;</span> NASIL BA&#350;LARIM?</div>
+          <div class="guide-tip">
+            <span class="guide-tip-icon">&#127908;</span>
+            <div class="guide-tip-text"><strong>Sesli komut verin</strong> &mdash; Mikrofon butonuna bas&#305;n ve do&#287;al konu&#351;un. &ldquo;Bug&#252;n durusma var m&#305;?&rdquo; deyin, Ali anlayacakt&#305;r.</div>
+          </div>
+          <div class="guide-tip">
+            <span class="guide-tip-icon">&#9997;&#65039;</span>
+            <div class="guide-tip-text"><strong>Yaz&#305;n</strong> &mdash; Alt k&#305;s&#305;mdaki metin alan&#305;na istedi&#287;inizi yaz&#305;n. Do&#287;al dil kullan&#305;n, komut ezberlemeye gerek yok.</div>
+          </div>
+          <div class="guide-tip">
+            <span class="guide-tip-icon">&#128279;</span>
+            <div class="guide-tip-text"><strong>Zincirleme komut</strong> &mdash; &ldquo;Y&#305;lmaz dosyas&#305;n&#305; analiz et ve savunma dilek&#231;esi yaz&rdquo; gibi birden fazla i&#351;lemi tek seferde s&#246;yleyin.</div>
+          </div>
+        </div>
+
+        <!-- ═══ GUNLUK IS AKISI ═══ -->
+        <div class="guide-section" id="sec-workflow">
+          <div class="guide-hero-card" style="text-align:left;padding:24px 28px">
+            <div class="guide-hero-title" style="font-size:18px;margin-bottom:12px">Bir Avukat&#305;n Ali ile G&#252;n&#252;</div>
+            <div class="guide-hero-desc" style="text-align:left;margin:0 0 4px">Ali&rsquo;nin g&#252;nl&#252;k i&#351; ak&#305;&#351;&#305;n&#305;za nas&#305;l entegre oldu&#287;unu g&#246;r&#252;n. Her komutu t&#305;klayarak hemen deneyebilirsiniz.</div>
+          </div>
+
+          <div class="guide-timeline">
+            <!-- Sabah -->
+            <div class="guide-time-block morning">
+              <div class="guide-time-header">
+                <span class="guide-time-icon">&#9728;&#65039;</span>
+                <span class="guide-time-label">Sabah</span>
+                <span class="guide-time-hour">09:00</span>
+              </div>
+              <div class="guide-time-row">
+                <span class="guide-time-prompt" onclick="tryPrompt('Bug\u00fcn yakla\u015fan duru\u015fmalar\u0131m var m\u0131?')">&ldquo;Bug&#252;n yakla&#351;an duru&#351;malar&#305;m var m&#305;?&rdquo;</span>
+                <span class="guide-time-result">&#8594; Duru&#351;ma takvimi kontrol</span>
+              </div>
+              <div class="guide-time-row">
+                <span class="guide-time-prompt" onclick="tryPrompt('S\u00fcresi dolan tebligatlar?')">&ldquo;S&#252;resi dolan tebligatlar?&rdquo;</span>
+                <span class="guide-time-result">&#8594; Acil tebligat uyar&#305;lar&#305;</span>
+              </div>
+              <div class="guide-time-row">
+                <span class="guide-time-prompt" onclick="tryPrompt('Bug\u00fcnk\u00fc duru\u015fma i\u00e7in haz\u0131rl\u0131k listesi olu\u015ftur')">&ldquo;Bug&#252;nk&#252; duru&#351;ma i&#231;in haz&#305;rl&#305;k listesi olu&#351;tur&rdquo;</span>
+                <span class="guide-time-result">&#8594; Kontrol listesi</span>
+              </div>
+            </div>
+
+            <!-- Durusma Hazirligi -->
+            <div class="guide-time-block prep">
+              <div class="guide-time-header">
+                <span class="guide-time-icon">&#128203;</span>
+                <span class="guide-time-label">Duru&#351;ma Haz&#305;rl&#305;&#287;&#305;</span>
+                <span class="guide-time-hour">10:00</span>
+              </div>
+              <div class="guide-time-row">
+                <span class="guide-time-prompt" onclick="tryPrompt('Y\u0131lmaz dosyas\u0131ndaki belgeleri analiz et')">&ldquo;Y&#305;lmaz dosyas&#305;ndaki belgeleri analiz et&rdquo;</span>
+                <span class="guide-time-result">&#8594; Toplu dosya analizi</span>
+              </div>
+              <div class="guide-time-row">
+                <span class="guide-time-prompt" onclick="tryPrompt('TCK 157 emsal kararlar\u0131 ara')">&ldquo;TCK 157 emsal kararlar&#305; ara&rdquo;</span>
+                <span class="guide-time-result">&#8594; Yarg&#305; karar&#305; ara&#351;t&#305;rma</span>
+              </div>
+              <div class="guide-time-row">
+                <span class="guide-time-prompt" onclick="tryPrompt('Savunma dilek\u00e7esi yaz')">&ldquo;Savunma dilek&#231;esi yaz&rdquo;</span>
+                <span class="guide-time-result">&#8594; Belge olu&#351;turma</span>
+              </div>
+            </div>
+
+            <!-- Durusma Sonrasi -->
+            <div class="guide-time-block court">
+              <div class="guide-time-header">
+                <span class="guide-time-icon">&#9878;&#65039;</span>
+                <span class="guide-time-label">Duru&#351;ma Sonras&#305;</span>
+                <span class="guide-time-hour">14:00</span>
+              </div>
+              <div class="guide-time-row">
+                <span class="guide-time-prompt" onclick="tryPrompt('Duru\u015fma notlar\u0131n\u0131 kaydet')">&ldquo;Duru&#351;ma notlar&#305;n&#305; kaydet&rdquo;</span>
+                <span class="guide-time-result">&#8594; Not alma</span>
+              </div>
+              <div class="guide-time-row">
+                <span class="guide-time-prompt" onclick="tryPrompt('2 saat 30 dakika \u00e7al\u0131\u015fma kayd\u0131 olu\u015ftur')">&ldquo;2 saat 30 dakika &#231;al&#305;&#351;ma kayd&#305; olu&#351;tur&rdquo;</span>
+                <span class="guide-time-result">&#8594; Zaman takip</span>
+              </div>
+              <div class="guide-time-row">
+                <span class="guide-time-prompt" onclick="tryPrompt('500 TL bilirki\u015fi masraf\u0131 ekle')">&ldquo;500 TL bilirki&#351;i masraf&#305; ekle&rdquo;</span>
+                <span class="guide-time-result">&#8594; Masraf takip</span>
+              </div>
+            </div>
+
+            <!-- Icra Isleri -->
+            <div class="guide-time-block exec">
+              <div class="guide-time-header">
+                <span class="guide-time-icon">&#127974;</span>
+                <span class="guide-time-label">&#304;cra &#304;&#351;leri</span>
+                <span class="guide-time-hour">16:00</span>
+              </div>
+              <div class="guide-time-row">
+                <span class="guide-time-prompt" onclick="tryPrompt('75.000 TL i\u00e7in icra hesab\u0131 yap')">&ldquo;75.000 TL i&#231;in icra hesab&#305; yap&rdquo;</span>
+                <span class="guide-time-result">&#8594; Faiz + har&#231; hesaplama</span>
+              </div>
+              <div class="guide-time-row">
+                <span class="guide-time-prompt" onclick="tryPrompt('Yeni m\u00fcvekkil Mehmet Demir\u2019i kaydet')">&ldquo;Yeni m&#252;vekkil Mehmet Demir&rsquo;i kaydet&rdquo;</span>
+                <span class="guide-time-result">&#8594; M&#252;vekkil takip</span>
+              </div>
+              <div class="guide-time-row">
+                <span class="guide-time-prompt" onclick="tryPrompt('Genel dava vekaleti kaydet')">&ldquo;Genel dava vekaleti kaydet&rdquo;</span>
+                <span class="guide-time-result">&#8594; Vekalet takip</span>
+              </div>
+            </div>
+
+            <!-- Gun Sonu -->
+            <div class="guide-time-block evening">
+              <div class="guide-time-header">
+                <span class="guide-time-icon">&#127769;</span>
+                <span class="guide-time-label">G&#252;n Sonu</span>
+                <span class="guide-time-hour">18:00</span>
+              </div>
+              <div class="guide-time-row">
+                <span class="guide-time-prompt" onclick="tryPrompt('Bug\u00fcnk\u00fc masraf beyan\u0131n\u0131 \u00e7\u0131kar')">&ldquo;Bug&#252;nk&#252; masraf beyan&#305;n&#305; &#231;&#305;kar&rdquo;</span>
+                <span class="guide-time-result">&#8594; Masraf raporu</span>
+              </div>
+              <div class="guide-time-row">
+                <span class="guide-time-prompt" onclick="tryPrompt('Yar\u0131nki duru\u015fmalar?')">&ldquo;Yar&#305;nki duru&#351;malar?&rdquo;</span>
+                <span class="guide-time-result">&#8594; Ertesi g&#252;n planlamas&#305;</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ HUKUKI ARASTIRMA ═══ -->
+        <div class="guide-section" id="sec-research">
+          <div class="guide-sec-title"><span>&#128218;</span> HUKUK&#304; ARA&#350;TIRMA ARA&#199;LARI</div>
+
+          <div class="guide-tool">
+            <div class="guide-tool-head">
+              <span class="guide-tool-icon">&#128218;</span>
+              <span class="guide-tool-name">Mevzuat Arama</span>
+            </div>
+            <div class="guide-tool-desc">T&#252;rk mevzuat&#305;nda kapsaml&#305; arama yapar: kanun, KHK, t&#252;z&#252;k, y&#246;netmelik, tebli&#287; ve Cumhurba&#351;kanl&#305;&#287;&#305; Kararnamesi. Madde i&#231;i detayl&#305; arama desteklidir.</div>
+            <div class="guide-tool-examples">
+              <span class="guide-try-btn" onclick="tryPrompt('TCK 157 doland\u0131r\u0131c\u0131l\u0131k maddesini ara')">TCK 157 doland&#305;r&#305;c&#305;l&#305;k maddesini ara <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('\u0130\u015f Kanunu madde 18 hakk\u0131nda bilgi ver')">&#304;&#351; Kanunu madde 18 hakk&#305;nda bilgi ver <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('Kira s\u00f6zle\u015fmesiyle ilgili y\u00f6netmelikleri bul')">Kira s&#246;zle&#351;mesiyle ilgili y&#246;netmelikleri bul <span class="guide-try-arrow">&#8594;</span></span>
+            </div>
+          </div>
+
+          <div class="guide-tool">
+            <div class="guide-tool-head">
+              <span class="guide-tool-icon">&#9878;&#65039;</span>
+              <span class="guide-tool-name">Yarg&#305; Kararlar&#305;</span>
+            </div>
+            <div class="guide-tool-desc">Yarg&#305;tay, Dan&#305;&#351;tay, Anayasa Mahkemesi, Say&#305;&#351;tay, KVKK, Rekabet Kurumu, BDDK, K&#304;K ve Uyu&#351;mazl&#305;k Mahkemesi kararlar&#305;n&#305; arar. Tarih filtresi desteklidir.</div>
+            <div class="guide-tool-examples">
+              <span class="guide-try-btn" onclick="tryPrompt('Yarg\u0131tay i\u015f kazas\u0131 tazminat kararlar\u0131n\u0131 ara')">Yarg&#305;tay i&#351; kazas&#305; tazminat emsal kararlar&#305; <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('Dan\u0131\u015ftay idari i\u015flem iptali kararlar\u0131')">Dan&#305;&#351;tay idari i&#351;lem iptali kararlar&#305; <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('KVKK ki\u015fisel veri ihlali kararlar\u0131')">KVKK ki&#351;isel veri ihlali kararlar&#305; <span class="guide-try-arrow">&#8594;</span></span>
+            </div>
+          </div>
+
+          <div class="guide-tool">
+            <div class="guide-tool-head">
+              <span class="guide-tool-icon">&#128214;</span>
+              <span class="guide-tool-name">Bilgi Bankas&#305;</span>
+            </div>
+            <div class="guide-tool-desc">Yerel hukuk bilgi bankas&#305;: TCK, CMK, savunma teknikleri, UYAP rehberi. &#304;nternet gerektirmez, an&#305;nda sonu&#231; verir. MCP servisleri &#231;al&#305;&#351;mad&#305;&#287;&#305;nda otomatik yedek olarak devreye girer.</div>
+            <div class="guide-tool-examples">
+              <span class="guide-try-btn" onclick="tryPrompt('Me\u015fru m\u00fcdafaa ko\u015fullar\u0131n\u0131 a\u00e7\u0131kla')">Me&#351;ru m&#252;dafaa ko&#351;ullar&#305;n&#305; a&#231;&#305;kla <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('Te\u015febb\u00fcs indirimi nas\u0131l uygulan\u0131r?')">Te&#351;ebb&#252;s indirimi nas&#305;l uygulan&#305;r? <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('UYAP\u2019ta dilek\u00e7e nas\u0131l g\u00f6nderilir?')">UYAP&rsquo;ta dilek&#231;e nas&#305;l g&#246;nderilir? <span class="guide-try-arrow">&#8594;</span></span>
+            </div>
+          </div>
+
+          <div class="guide-tool highlight">
+            <div class="guide-tool-head">
+              <span class="guide-tool-icon">&#128194;</span>
+              <span class="guide-tool-name">Dosya Analiz</span>
+              <span class="guide-tool-badge">&#11088; &#214;NE &#199;IKAN</span>
+            </div>
+            <div class="guide-tool-desc">Toplu PDF ve Word dosyalar&#305;n&#305; analiz eder. Bir klas&#246;rdeki t&#252;m belgeleri tek seferde tarar: savunma zaaf&#305; tespiti, delil &#231;&#305;karma, eksik belge kontrolu yapar. B&#252;y&#252;k dava dosyalar&#305;nda saatlerce s&#252;recek i&#351;i dakikalara indirir.</div>
+            <div class="guide-tool-examples">
+              <span class="guide-try-btn" onclick="tryPrompt('Masa\u00fcst\u00fcndeki Dava klas\u00f6r\u00fcn\u00fc analiz et')">Masa&#252;st&#252;ndeki Dava klas&#246;r&#252;n&#252; analiz et <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('Savunma zaaflar\u0131n\u0131 bul ve rapor olu\u015ftur')">Savunma zaaflar&#305;n&#305; bul ve rapor olu&#351;tur <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('Delilleri \u00e7\u0131kar ve eksik belgeleri listele')">Delilleri &#231;&#305;kar ve eksik belgeleri listele <span class="guide-try-arrow">&#8594;</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ DAVA YONETIMI ═══ -->
+        <div class="guide-section" id="sec-case">
+          <div class="guide-sec-title"><span>&#9878;&#65039;</span> DAVA Y&#214;NET&#304;M&#304;</div>
+
+          <div class="guide-tool">
+            <div class="guide-tool-head">
+              <span class="guide-tool-icon">&#128197;</span>
+              <span class="guide-tool-name">Duru&#351;ma Takvimi</span>
+            </div>
+            <div class="guide-tool-desc">Duru&#351;ma ekleme, listeleme ve yakla&#351;an davalar&#305; g&#246;rme. 7 g&#252;n &#246;ncesinden uyar&#305; verir, 48 saat kala hat&#305;rlatma g&#246;nderir.</div>
+            <div class="guide-tool-examples">
+              <span class="guide-try-btn" onclick="tryPrompt('Yar\u0131nki duru\u015fmay\u0131 ekle, saat 10:00, \u0130stanbul 3. A\u011f\u0131r Ceza')">Duru&#351;ma ekle: yar&#305;n 10:00, &#304;st. 3. A&#287;&#305;r Ceza <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('Yakla\u015fan duru\u015fmalar\u0131 listele')">Yakla&#351;an duru&#351;malar&#305; listele <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('Bu hafta duru\u015fma var m\u0131?')">Bu hafta duru&#351;ma var m&#305;? <span class="guide-try-arrow">&#8594;</span></span>
+            </div>
+          </div>
+
+          <div class="guide-tool">
+            <div class="guide-tool-head">
+              <span class="guide-tool-icon">&#128101;</span>
+              <span class="guide-tool-name">M&#252;vekkil Takip</span>
+            </div>
+            <div class="guide-tool-desc">M&#252;vekkil bilgi y&#246;netimi: ekleme, listeleme, arama, g&#252;ncelleme ve not ekleme. &#304;leti&#351;im bilgileri, dava &#246;zeti ve notlar tek yerde.</div>
+            <div class="guide-tool-examples">
+              <span class="guide-try-btn" onclick="tryPrompt('M\u00fcvekkil Ahmet Y\u0131lmaz\u2019\u0131 kaydet')">M&#252;vekkil Ahmet Y&#305;lmaz&rsquo;&#305; kaydet <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('T\u00fcm m\u00fcvekkilleri listele')">T&#252;m m&#252;vekkilleri listele <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('Ahmet Bey\u2019in dosyas\u0131na not ekle')">Ahmet Bey&rsquo;in dosyas&#305;na not ekle <span class="guide-try-arrow">&#8594;</span></span>
+            </div>
+          </div>
+
+          <div class="guide-tool">
+            <div class="guide-tool-head">
+              <span class="guide-tool-icon">&#128236;</span>
+              <span class="guide-tool-name">Tebligat Takip</span>
+            </div>
+            <div class="guide-tool-desc">Tebligat kaydetme ve otomatik s&#252;re hesaplama. 21/2, madde 35 ve ilan tebligat&#305; t&#252;rlerini tan&#305;r. S&#252;re hesab&#305;nda hafta sonu d&#252;zeltmesi yapar, acil tebligatlar i&#231;in uyar&#305; verir.</div>
+            <div class="guide-tool-examples">
+              <span class="guide-try-btn" onclick="tryPrompt('21/2 tebligat\u0131 kaydet, tebli\u011f tarihi bug\u00fcn')">21/2 tebligat&#305; kaydet <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('Acil tebligatlar\u0131 g\u00f6ster')">Acil tebligatlar&#305; g&#246;ster <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('S\u00fcresi dolan tebligatlar var m\u0131?')">S&#252;resi dolan tebligatlar var m&#305;? <span class="guide-try-arrow">&#8594;</span></span>
+            </div>
+          </div>
+
+          <div class="guide-tool">
+            <div class="guide-tool-head">
+              <span class="guide-tool-icon">&#128203;</span>
+              <span class="guide-tool-name">Vekalet Takip</span>
+            </div>
+            <div class="guide-tool-desc">Vekaletname ve azilname takibi. S&#252;re dolumu uyar&#305;s&#305;, m&#252;vekkil bazl&#305; listeleme. Vekalet t&#252;rleri: genel dava, bo&#351;anma, icra, &#246;zel.</div>
+            <div class="guide-tool-examples">
+              <span class="guide-try-btn" onclick="tryPrompt('Genel dava vekaleti kaydet, m\u00fcvekkil Ahmet Y\u0131lmaz')">Genel dava vekaleti kaydet <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('S\u00fcresi dolan vekaletler')">S&#252;resi dolan vekaletler <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('Azil i\u015flemi yap')">Azil i&#351;lemi yap <span class="guide-try-arrow">&#8594;</span></span>
+            </div>
+          </div>
+
+          <div class="guide-tool">
+            <div class="guide-tool-head">
+              <span class="guide-tool-icon">&#9989;</span>
+              <span class="guide-tool-name">Duru&#351;ma Haz&#305;rl&#305;k</span>
+            </div>
+            <div class="guide-tool-desc">Dava t&#252;r&#252;ne g&#246;re haz&#305;r duru&#351;ma haz&#305;rl&#305;k &#351;ablonlar&#305;: ceza, hukuk, icra, idari. Eksik madde uyar&#305;s&#305; verir.</div>
+            <div class="guide-tool-examples">
+              <span class="guide-try-btn" onclick="tryPrompt('Yar\u0131nki ceza duru\u015fmas\u0131 i\u00e7in haz\u0131rl\u0131k listesi')">Ceza duru&#351;mas&#305; haz&#305;rl&#305;k listesi <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('Hukuk duru\u015fmas\u0131 kontrol listesi olu\u015ftur')">Hukuk duru&#351;mas&#305; kontrol listesi <span class="guide-try-arrow">&#8594;</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ BELGE ISLEMLERI ═══ -->
+        <div class="guide-section" id="sec-docs">
+          <div class="guide-sec-title"><span>&#128196;</span> BELGE &#304;&#350;LEMLER&#304;</div>
+
+          <div class="guide-tool">
+            <div class="guide-tool-head">
+              <span class="guide-tool-icon">&#128196;</span>
+              <span class="guide-tool-name">Belge Olu&#351;turma</span>
+            </div>
+            <div class="guide-tool-desc">Hukuki belge olu&#351;turur: dilek&#231;e, savunma, itiraz, temyiz. DOCX format&#305;nda, resmi dilde haz&#305;rlan&#305;r. Mahkeme bilgileri, madde numaralar&#305; otomatik eklenir.</div>
+            <div class="guide-tool-examples">
+              <span class="guide-try-btn" onclick="tryPrompt('Kira uyu\u015fmazl\u0131\u011f\u0131 i\u00e7in ihtarname yaz')">Kira uyu&#351;mazl&#305;&#287;&#305; ihtarnamesi yaz <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('Tahliye davas\u0131 i\u00e7in cevap dilek\u00e7esi haz\u0131rla')">Tahliye davas&#305; cevap dilek&#231;esi <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('\u0130stinaf dilek\u00e7esi haz\u0131rla')">&#304;stinaf dilek&#231;esi haz&#305;rla <span class="guide-try-arrow">&#8594;</span></span>
+            </div>
+          </div>
+
+          <div class="guide-tool highlight">
+            <div class="guide-tool-head">
+              <span class="guide-tool-icon">&#128194;</span>
+              <span class="guide-tool-name">Dosya Analiz (Toplu)</span>
+              <span class="guide-tool-badge">&#11088; G&#220;&#199;L&#220;</span>
+            </div>
+            <div class="guide-tool-desc">Bir klas&#246;rdeki t&#252;m PDF ve Word dosyalar&#305;n&#305; tek seferde analiz eder. Savunma zaaflar&#305;n&#305; tespit eder, delilleri &#231;&#305;kar&#305;r, eksik belgeleri bulur. Dava dosyas&#305;n&#305; dakikalar i&#231;inde &#246;zetler.</div>
+            <div class="guide-tool-examples">
+              <span class="guide-try-btn" onclick="tryPrompt('Masa\u00fcst\u00fcndeki dava klas\u00f6r\u00fcndeki t\u00fcm dosyalar\u0131 analiz et')">Klas&#246;rdeki t&#252;m dosyalar&#305; analiz et <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('Dosyalardaki delilleri \u00e7\u0131kar ve \u00f6zetle')">Delilleri &#231;&#305;kar ve &#246;zetle <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('Eksik belgeleri bul ve rapor olu\u015ftur')">Eksik belgeleri bul <span class="guide-try-arrow">&#8594;</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ ICRA & HESAPLAMALAR ═══ -->
+        <div class="guide-section" id="sec-icra">
+          <div class="guide-sec-title"><span>&#127974;</span> &#304;CRA &amp; HESAPLAMALAR</div>
+
+          <div class="guide-tool">
+            <div class="guide-tool-head">
+              <span class="guide-tool-icon">&#127974;</span>
+              <span class="guide-tool-name">&#304;cra Hesaplama</span>
+            </div>
+            <div class="guide-tool-desc">Faiz, har&#231;, vekalet &#252;creti ve icra inkar tazminat&#305; hesaplar. Yasal faiz oranlar&#305;yla otomatik hesaplama yapar, har&#231; ve vekalet &#252;creti tablosunu kullan&#305;r.</div>
+            <div class="guide-tool-examples">
+              <span class="guide-try-btn" onclick="tryPrompt('75.000 TL i\u00e7in icra hesab\u0131 yap')">75.000 TL icra hesab&#305; <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('50.000 TL i\u00e7in 01.01.2025\u2019ten itibaren faiz hesapla')">50.000 TL faiz hesab&#305; <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('Vekalet \u00fccreti ve har\u00e7 hesapla')">Vekalet &#252;creti + har&#231; <span class="guide-try-arrow">&#8594;</span></span>
+            </div>
+          </div>
+
+          <div class="guide-tool">
+            <div class="guide-tool-head">
+              <span class="guide-tool-icon">&#128290;</span>
+              <span class="guide-tool-name">Ceza Hesaplama</span>
+            </div>
+            <div class="guide-tool-desc">TCK&rsquo;ya g&#246;re ceza hesaplar: temel ceza, a&#287;&#305;rla&#351;t&#305;r&#305;c&#305;/hafifletici nedenler, te&#351;ebb&#252;s, i&#351;tirak, zincirleme su&#231;, iyi hal indirimi, ya&#351; indirimi. HAGB ve erteleme notunu ekler.</div>
+            <div class="guide-tool-examples">
+              <span class="guide-try-btn" onclick="tryPrompt('TCK 157 doland\u0131r\u0131c\u0131l\u0131k i\u00e7in ceza hesapla')">TCK 157 ceza hesab&#305; <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('TCK 86 kasten yaralama, iyi hal indirimi uygula')">TCK 86 + iyi hal indirimi <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('H\u0131rs\u0131zl\u0131k su\u00e7u i\u00e7in te\u015febb\u00fcs indirimi ile ceza hesapla')">H&#305;rs&#305;zl&#305;k + te&#351;ebb&#252;s indirimi <span class="guide-try-arrow">&#8594;</span></span>
+            </div>
+          </div>
+
+          <div class="guide-tool">
+            <div class="guide-tool-head">
+              <span class="guide-tool-icon">&#9201;</span>
+              <span class="guide-tool-name">S&#252;re Hesaplama</span>
+            </div>
+            <div class="guide-tool-desc">Hukuki s&#252;releri hesaplar: istinaf, temyiz, itiraz, dava a&#231;ma, tebligat, icra s&#252;releri. Hafta sonu kontrolu yapar, t&#252;m s&#252;releri tablo halinde listeleyebilir.</div>
+            <div class="guide-tool-examples">
+              <span class="guide-try-btn" onclick="tryPrompt('\u0130stinaf s\u00fcresi ne zaman doluyor?')">&304;stinaf s&#252;resi ne zaman? <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('Temyiz s\u00fcresi hesapla, tebli\u011f tarihi bug\u00fcn')">Temyiz s&#252;resi hesapla <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('T\u00fcm hukuki s\u00fcreler tablosu')">T&#252;m s&#252;reler tablosu <span class="guide-try-arrow">&#8594;</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ BURO YONETIMI ═══ -->
+        <div class="guide-section" id="sec-office">
+          <div class="guide-sec-title"><span>&#127970;</span> B&#220;RO Y&#214;NET&#304;M&#304;</div>
+
+          <div class="guide-tool">
+            <div class="guide-tool-head">
+              <span class="guide-tool-icon">&#128176;</span>
+              <span class="guide-tool-name">Masraf Takip</span>
+            </div>
+            <div class="guide-tool-desc">Dava bazl&#305; masraf ve gider takibi. Masraf kayd&#305;, kategorilendirme, toplam hesaplama. DOCX masraf beyan&#305; &#231;&#305;kt&#305;s&#305; verir.</div>
+            <div class="guide-tool-examples">
+              <span class="guide-try-btn" onclick="tryPrompt('Y\u0131lmaz dosyas\u0131na 500 TL bilirki\u015fi masraf\u0131 ekle')">500 TL bilirki&#351;i masraf&#305; ekle <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('Masraf beyan\u0131 olu\u015ftur')">Masraf beyan&#305; olu&#351;tur <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('Bu ayki toplam masraflar\u0131 g\u00f6ster')">Bu ayki masraflar <span class="guide-try-arrow">&#8594;</span></span>
+            </div>
+          </div>
+
+          <div class="guide-tool">
+            <div class="guide-tool-head">
+              <span class="guide-tool-icon">&#9201;</span>
+              <span class="guide-tool-name">Zaman Takip</span>
+            </div>
+            <div class="guide-tool-desc">Dava bazl&#305; faturalanabilir saat takibi. Ba&#351;lat, durdur, listele, rapor. Ondal&#305;kl&#305; saat hesab&#305; (faturalama i&#231;in).</div>
+            <div class="guide-tool-examples">
+              <span class="guide-try-btn" onclick="tryPrompt('Ahmet Y\u0131lmaz dosyas\u0131 i\u00e7in zaman takibi ba\u015flat')">Zaman takibi ba&#351;lat <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('Zamanlay\u0131c\u0131y\u0131 durdur')">Zamanlay&#305;c&#305;y&#305; durdur <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('Bu dava i\u00e7in zaman raporu')">Zaman raporu &#231;&#305;kar <span class="guide-try-arrow">&#8594;</span></span>
+            </div>
+          </div>
+
+          <div class="guide-tool">
+            <div class="guide-tool-head">
+              <span class="guide-tool-icon">&#128221;</span>
+              <span class="guide-tool-name">Not Al</span>
+            </div>
+            <div class="guide-tool-desc">Not defteri: ekleme, listeleme, arama, silme. Etiketler ile organize edin: acil, normal, hat&#305;rlatma.</div>
+            <div class="guide-tool-examples">
+              <span class="guide-try-btn" onclick="tryPrompt('Bug\u00fcnk\u00fc toplant\u0131 notlar\u0131n\u0131 kaydet')">Toplant&#305; notunu kaydet <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('Acil not: M\u00fcvekkil yar\u0131n arayacak')">Acil not ekle <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('T\u00fcm notlar\u0131m\u0131 g\u00f6ster')">T&#252;m notlar&#305; g&#246;ster <span class="guide-try-arrow">&#8594;</span></span>
+            </div>
+          </div>
+
+          <div class="guide-tool">
+            <div class="guide-tool-head">
+              <span class="guide-tool-icon">&#9200;</span>
+              <span class="guide-tool-name">Hat&#305;rlat&#305;c&#305;</span>
+            </div>
+            <div class="guide-tool-desc">Zamanlay&#305;c&#305;l&#305; hat&#305;rlatma: belirlenen dakika sonra bildirim g&#246;nderir. Platform bildirimi (masaÃ¼st&#252;) destekli.</div>
+            <div class="guide-tool-examples">
+              <span class="guide-try-btn" onclick="tryPrompt('30 dakika sonra duru\u015fmay\u0131 hat\u0131rlat')">30 dk sonra hat&#305;rlat <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('Yar\u0131n saat 9\u2019da duru\u015fmay\u0131 hat\u0131rlat')">Yar&#305;n 9&rsquo;da hat&#305;rlat <span class="guide-try-arrow">&#8594;</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ ILETISIM ═══ -->
+        <div class="guide-section" id="sec-comms">
+          <div class="guide-sec-title"><span>&#128172;</span> &#304;LET&#304;&#350;&#304;M</div>
+
+          <div class="guide-tool">
+            <div class="guide-tool-head">
+              <span class="guide-tool-icon">&#128172;</span>
+              <span class="guide-tool-name">WhatsApp</span>
+            </div>
+            <div class="guide-tool-desc">WhatsApp &#252;zerinden mesaj g&#246;nderir. Telefon numaras&#305; veya ki&#351;i ad&#305; ile &#231;al&#305;&#351;&#305;r. M&#252;vekkillere h&#305;zl&#305; bilgilendirme g&#246;nderebilirsiniz.</div>
+            <div class="guide-tool-examples">
+              <span class="guide-try-btn" onclick="tryPrompt('WhatsApp\u2019tan Ahmet Bey\u2019e mesaj g\u00f6nder: Duru\u015fma yar\u0131n saat 10:00')">M&#252;vekkile WhatsApp mesaj&#305; <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('WhatsApp\u2019tan 05XX mesaj g\u00f6nder')">Numaraya WhatsApp mesaj&#305; <span class="guide-try-arrow">&#8594;</span></span>
+            </div>
+          </div>
+
+          <div class="guide-tool">
+            <div class="guide-tool-head">
+              <span class="guide-tool-icon">&#129302;</span>
+              <span class="guide-tool-name">Telegram</span>
+            </div>
+            <div class="guide-tool-desc">Telegram &#252;zerinden mesaj g&#246;nderir. Chat ID veya kullan&#305;c&#305; ad&#305; destekli. Bot &#252;zerinden &#231;al&#305;&#351;&#305;r.</div>
+            <div class="guide-tool-examples">
+              <span class="guide-try-btn" onclick="tryPrompt('Telegram\u2019dan bildirim g\u00f6nder')">Telegram bildirim g&#246;nder <span class="guide-try-arrow">&#8594;</span></span>
+              <span class="guide-try-btn" onclick="tryPrompt('Telegram\u2019dan son mesajlar\u0131 kontrol et')">Son mesajlar&#305; kontrol et <span class="guide-try-arrow">&#8594;</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ IPUCLARI ═══ -->
+        <div class="guide-section" id="sec-tips">
+          <div class="guide-sec-title"><span>&#128161;</span> &#304;PU&#199;LARI &amp; P&#220;F NOKTALARI</div>
+
+          <div class="guide-tip">
+            <span class="guide-tip-icon">&#129504;</span>
+            <div class="guide-tip-text"><strong>Ali sizi tan&#305;r</strong> &mdash; Ne kadar kullan&#305;rsan&#305;z o kadar ki&#351;iselle&#351;ir. M&#252;vekkillerinizi, davalar&#305;n&#305;z&#305;, tercihlerinizi hat&#305;rlar.</div>
+          </div>
+          <div class="guide-tip">
+            <span class="guide-tip-icon">&#128279;</span>
+            <div class="guide-tip-text"><strong>Zincirleme komut verin</strong> &mdash; &ldquo;Y&#305;lmaz dosyas&#305;n&#305; analiz et ve savunma dilek&#231;esi yaz&rdquo; gibi birden fazla arac&#305; tek seferde kullan&#305;n.</div>
+          </div>
+          <div class="guide-tip">
+            <span class="guide-tip-icon">&#127908;</span>
+            <div class="guide-tip-text"><strong>Sesli komut verin</strong> &mdash; Yazmaya gerek yok. Mikrofon butonuna bas&#305;n ve do&#287;al konu&#351;un. Ali sizi anlayacakt&#305;r.</div>
+          </div>
+          <div class="guide-tip">
+            <span class="guide-tip-icon">&#9200;</span>
+            <div class="guide-tip-text"><strong>Otomatik uyar&#305;lar</strong> &mdash; Duru&#351;ma 48 saat &#246;ncesinde otomatik uyar&#305; al&#305;rs&#305;n&#305;z. Hi&#231;bir duru&#351;may&#305; ka&#231;&#305;rmay&#305;n.</div>
+          </div>
+          <div class="guide-tip">
+            <span class="guide-tip-icon">&#128197;</span>
+            <div class="guide-tip-text"><strong>Ak&#305;ll&#305; s&#252;re hesaplama</strong> &mdash; Tebligat s&#252;relerini otomatik hesaplar, hafta sonu d&#252;zeltmesi yapar. Resmi tatilleri g&#246;z &#246;n&#252;nde bulundurur.</div>
+          </div>
+          <div class="guide-tip">
+            <span class="guide-tip-icon">&#128196;</span>
+            <div class="guide-tip-text"><strong>Profesyonel belgeler</strong> &mdash; T&#252;m belgeler DOCX format&#305;nda, resmi dilde haz&#305;rlan&#305;r. Mahkeme bilgileri ve madde numaralar&#305; otomatik eklenir.</div>
+          </div>
+          <div class="guide-tip">
+            <span class="guide-tip-icon">&#128274;</span>
+            <div class="guide-tip-text"><strong>Gizlilik</strong> &mdash; T&#252;m m&#252;vekkil bilgileri yerel olarak saklan&#305;r. &#220;&#231;&#252;nc&#252; taraflarla payla&#351;&#305;lmaz. Verileriniz g&#252;vende.</div>
+          </div>
+          <div class="guide-tip">
+            <span class="guide-tip-icon">&#128640;</span>
+            <div class="guide-tip-text"><strong>K&#305;sayollar</strong> &mdash; <strong>M</strong> tu&#351;u: mikrofon a&#231;/kapat &bull; <strong>/</strong> tu&#351;u: yaz&#305; alan&#305;na odaklan &bull; <strong>Esc</strong>: i&#351;lemi iptal et.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Notification containers -->
+<div class="notif-container" id="notifBox"></div>
+<div class="insight-container" id="insightBox"></div>
+
+<script>
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  ALI Web UI — Ambient Neural Field Interface               ║
+// ║  Advanced brain, full state management,                      ║
+// ║  typewriter effect, audio meter, insights, cost tracking     ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+// ─── Tool Registry ──────────────────────────────────────────────
+const TOOL_DISPLAY = {
+  mevzuat_ara:'Mevzuat Ara', yargi_ara:'Yargı Ara', bilgi_bankasi:'Bilgi Bankası',
+  ceza_hesapla:'Ceza Hesapla', belge_olustur:'Belge Oluştur',
+  dava_analiz:'Dava Analiz', sure_hesapla:'Süre Hesapla',
+  durusma_takvimi:'Duruşma Takvimi', muvekil_takip:'Müvekkil Takip',
+  zaman_takip:'Zaman Takip',
+  uygulama_ac:'Uygulama Aç', dosya_islem:'Dosya İşlem', tarayici:'Tarayıcı',
+  ekran_yakala:'Ekran Yakala', sistem:'Sistem',
+  web_ara:'Web Ara', hava_durumu:'Hava Durumu', hatirlatici:'Hatırlatıcı',
+  not_al:'Not Al',
+  masraf_takip:'Masraf Takip', icra_hesapla:'İcra Hesapla',
+  durusma_hazirlik:'Duruşma Hazırlık', tebligat_takip:'Tebligat Takip',
+  vekalet_takip:'Vekalet Takip', dosya_analiz:'Dosya Analiz',
+  telegram_mesaj:'Telegram', whatsapp_mesaj:'WhatsApp',
+};
+
+const TOOL_CATS = {
+  'HUKUK':{color:'#7b68ee', tools:['mevzuat_ara','yargi_ara','bilgi_bankasi','ceza_hesapla','belge_olustur','dava_analiz','sure_hesapla']},
+  'BÜRO':{color:'#f59e0b', tools:['durusma_takvimi','muvekil_takip','zaman_takip','not_al','masraf_takip','icra_hesapla','durusma_hazirlik','tebligat_takip','vekalet_takip','dosya_analiz']},
+  'BİLGİSAYAR':{color:'#00c868', tools:['uygulama_ac','dosya_islem','tarayici','ekran_yakala','sistem']},
+  'İLETİŞİM':{color:'#ec4899', tools:['telegram_mesaj','whatsapp_mesaj']},
+  'GENEL':{color:'#00d4ff', tools:['web_ara','hava_durumu','hatirlatici']},
+};
+
+const MODEL_COLORS = {gemini:'#4285f4', haiku:'#00c868', sonnet:'#4a90d9', opus:'#f0c040', 'fast-path':'#d4a017', fast:'#d4a017'};
+
+// ─── Global State ────────────────────────────────────────────────
+let ws = null, connected = false;
+let brainState = 'idle', audioLevel = 0;
+let voiceOn = false, recognition = null;
+let voiceEngineActive = false;  // PyAudio voice engine running
+let totalTokens = 0, totalReqs = 0, totalLatency = 0, msgCounter = 0;
+let reconnectMs = 1000, reconnectAttempts = 0;
+let isThinking = false;
+let switchTimer = null, toolTimers = {};
+let costToday = 0, costTotal = 0;
+
+// ─── Helpers ─────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const esc = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
+const now = () => new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+// ═══════════════════════════════════════════════════════════════
+// DRAWER MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+function toggleDrawerLeft() {
+  const panel = $('toolRack');
+  const overlay = $('drawerOverlay');
+  const isOpen = panel.classList.contains('open');
+  document.querySelector('.panel-r').classList.remove('open');
+  panel.classList.toggle('open', !isOpen);
+  overlay.classList.toggle('active', !isOpen);
+}
+
+function toggleDrawerRight() {
+  const panel = document.querySelector('.panel-r');
+  const overlay = $('drawerOverlay');
+  const isOpen = panel.classList.contains('open');
+  $('toolRack').classList.remove('open');
+  panel.classList.toggle('open', !isOpen);
+  overlay.classList.toggle('active', !isOpen);
+}
+
+function closeAllDrawers() {
+  $('toolRack').classList.remove('open');
+  document.querySelector('.panel-r').classList.remove('open');
+  $('drawerOverlay').classList.remove('active');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// WEBSOCKET
+// ═══════════════════════════════════════════════════════════════
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/ws`);
+
+  ws.onopen = () => {
+    connected = true;
+    reconnectAttempts = 0;
+    reconnectMs = 1000;
+    setConn(true);
+    $('dWeb').classList.add('up');
+  };
+
+  ws.onmessage = e => {
+    try {
+      const msg = JSON.parse(e.data);
+      handleEvent(msg.type, msg.data || msg);
+    } catch(err) { console.warn('WS parse:', err); }
+  };
+
+  ws.onclose = () => {
+    connected = false;
+    setConn(false);
+    $('dWeb').classList.remove('up');
+    reconnectAttempts++;
+    const backoff = Math.min(reconnectMs * Math.pow(1.5, reconnectAttempts - 1), 30000);
+    const jitter = backoff * (0.5 + Math.random() * 0.5);
+    setTimeout(connectWS, jitter);
+  };
+
+  ws.onerror = () => {};
+}
+
+function send(action, data = {}) {
+  if (ws && ws.readyState === WebSocket.OPEN)
+    ws.send(JSON.stringify({ action, ...data }));
+}
+
+function setConn(on) {
+  $('connDot').classList.toggle('on', on);
+  $('connLbl').textContent = on ? 'Bağlı' : (reconnectAttempts > 0 ? `Bağlanıyor (${reconnectAttempts})` : 'Bağlanıyor');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EVENT ROUTER
+// ═══════════════════════════════════════════════════════════════
+function handleEvent(type, data) {
+  switch(type) {
+    case 'state_sync':    onStateSync(data); break;
+    case 'transcript':    onTranscript(data); break;
+    case 'thinking':      onThinking(data); break;
+    case 'speaking':      onSpeaking(data); break;
+    case 'tool_state':    onToolState(data); break;
+    case 'response':      break; // handled by broadcast transcript, no duplicate
+    case 'model_activity':onModelActivity(data); break;
+    case 'model_switch':  onModelSwitch(data); break;
+    case 'note':          addNote(data); break;
+    case 'notification':  showNotif(data); break;
+    case 'insight':       showInsight(data); break;
+    case 'cost':          onCost(data); break;
+    case 'audio_level':   onAudioLevel(data); break;
+    case 'mic_mute':      onMicMute(data); break;
+    case 'shutdown':      onShutdown(data); break;
+    case 'daemon_status': onDaemonStatus(data); break;
+    case 'env_status':    onEnvStatus(data); break;
+    case 'connection':    setConn(data.active); break;
+    case 'telegram_mention': onTelegramMention(data); break;
+    case 'telegram_message': onTelegramMessage(data); break;
+  }
+}
+
+// ─── State Sync ──────────────────────────────────────────────────
+function onStateSync(s) {
+  if (!s) return;
+  if (s.tools) buildToolRack(s.tools);
+  if (s.model) {
+    const m = s.model.toLowerCase();
+    $('hModel').textContent = m.includes('haiku') ? 'HAIKU 4.5' : m.includes('sonnet') ? 'SONNET 4' : m.includes('opus') ? 'OPUS 4' : s.model;
+  }
+  // Mark daemons from state
+  if (s.connected) {
+    $('dWeb').classList.add('up');
+    $('hAnthro').className = 'h-dot h-ok'; $('hAnthroV').textContent = 'Aktif';
+  }
+  // Update health indicators from state
+  updateHealthFromSync(s);
+}
+
+function updateHealthFromSync(s) {
+  $('hAnthro').className = 'h-dot h-ok'; $('hAnthroV').textContent = 'Aktif';
+  if (s.db_active || (s.tools && s.tools.includes('db_query'))) {
+    $('hDb').className = 'h-dot h-ok'; $('hDbV').textContent = 'Bağlı';
+    $('dDb').classList.add('up');
+  }
+  if (s.telegram_active) {
+    $('hTg').className = 'h-dot h-ok'; $('hTgV').textContent = 'Aktif';
+    $('dTg').classList.add('up');
+  }
+  // Voice engine status from config
+  if (s.voice_active) {
+    voiceEngineActive = true;
+    $('dVoice').classList.add('up');
+    $('hVoice').className = 'h-dot h-ok'; $('hVoiceV').textContent = 'Aktif';
+    setBrainState('listening');
+  }
+}
+
+// ─── Transcript ──────────────────────────────────────────────────
+function onTranscript(d) {
+  hideWelcome();
+  const area = $('chatArea');
+  const div = document.createElement('div');
+  div.className = 'chat-line';
+
+  if (d.role === 'user') {
+    div.innerHTML = `<span class="tag tag-u">SEN:</span> ${esc(d.text)}`;
+    area.appendChild(div);
+    // Flash notification for voice input
+    if (voiceEngineActive) {
+      showNotif({title:'SES ALGILANDI', message: d.text.length > 60 ? d.text.slice(0,60)+'...' : d.text, duration: 2500});
+    }
+  } else if (d.role === 'ai') {
+    // Stats update
+    msgCounter++;
+    totalReqs++;
+    if (d.tokens) { totalTokens += d.tokens; updateCostEstimate(d.tokens, d.model); }
+    if (d.latency_ms) { totalLatency += d.latency_ms; }
+    $('sCount').textContent = totalReqs;
+    $('sToken').textContent = totalTokens.toLocaleString();
+    const avgLat = totalLatency > 0 ? Math.round(totalLatency / totalReqs) : 0;
+    $('sLatency').textContent = avgLat > 0 ? avgLat + 'ms' : '—';
+
+    // Model badges
+    if (d.model) {
+      const m = d.model.toLowerCase();
+      const label = m.includes('gemini') ? 'GEMINI' : m.includes('fast') ? 'FAST-PATH' : m.includes('haiku') ? 'HAIKU 4.5' : m.includes('sonnet') ? 'SONNET 4' : m.includes('opus') ? 'OPUS 4' : d.model;
+      $('hModel').textContent = label;
+      $('sModel').textContent = label;
+      activateChip(m);
+    }
+    if (d.domain) $('hDomain').textContent = d.domain.toUpperCase();
+
+    // Meta — rich info line
+    let meta = '';
+    if (d.model) { const m = d.model.toLowerCase(); meta += m.includes('gemini') ? '⚡gemini' : m.includes('fast') ? '🏎️fast' : m.includes('haiku') ? '💨haiku' : m.includes('sonnet') ? '🧠sonnet' : d.model; }
+    if (d.domain && d.domain !== 'general') meta += ` · 📍${d.domain}`;
+    if (d.latency_ms) meta += ` · ⏱${d.latency_ms}ms`;
+    if (d.tokens) meta += ` · ${d.tokens}tk`;
+    if (d.tools_used?.length) meta += ` · 🔧${d.tools_used.join(' → ')}`;
+
+    // Typewriter effect (unique ID per message)
+    const twId = 'tw-' + msgCounter;
+    div.innerHTML = `<span class="tag tag-a">ALI:</span> <span class="chat-typing" id="${twId}"></span>`;
+    area.appendChild(div);
+    typewrite(twId, d.text, meta);
+
+    // Update latency health indicator
+    if (d.latency_ms) {
+      const lat = d.latency_ms;
+      if (lat < 3000) { $('hLatency').className = 'h-dot h-ok'; $('hLatencyV').textContent = lat + 'ms'; }
+      else if (lat < 8000) { $('hLatency').className = 'h-dot h-warn'; $('hLatencyV').textContent = lat + 'ms'; }
+      else { $('hLatency').className = 'h-dot h-err'; $('hLatencyV').textContent = lat + 'ms'; }
+    }
+
+    // TTS (only for web speech, not when PyAudio voice engine handles it)
+    if (voiceOn && !voiceEngineActive && d.text) speakText(d.text);
+  } else if (d.role === 'system') {
+    div.innerHTML = `<span class="tag tag-s">SİSTEM:</span> ${esc(d.text)}`;
+    area.appendChild(div);
+  }
+
+  // Cap & scroll
+  while (area.children.length > 300) area.removeChild(area.firstChild);
+  area.scrollTop = area.scrollHeight;
+}
+
+// Typewriter
+function typewrite(elId, text, meta) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  let i = 0;
+  const formatted = formatText(text);
+  // Use chunks for speed
+  const chunkSize = Math.max(1, Math.floor(text.length / 60));
+  const cursor = document.createElement('span');
+  cursor.className = 'chat-cursor';
+  el.appendChild(cursor);
+
+  function tick() {
+    if (i >= formatted.length) {
+      cursor.remove();
+      if (meta) {
+        const metaEl = document.createElement('span');
+        metaEl.className = 'chat-meta';
+        metaEl.textContent = ` [${meta}]`;
+        el.appendChild(metaEl);
+      }
+      return;
+    }
+    // Find safe chunk boundary (don't break HTML tags)
+    let end = Math.min(i + chunkSize, formatted.length);
+    // If we're inside a tag, extend to close it
+    if (end < formatted.length) {
+      const rest = formatted.slice(i, end + 50);
+      const openBracket = rest.lastIndexOf('<', end - i);
+      const closeBracket = rest.lastIndexOf('>', end - i);
+      if (openBracket > closeBracket) {
+        const nextClose = rest.indexOf('>', end - i);
+        if (nextClose !== -1) end = i + nextClose + 1;
+      }
+    }
+    const chunk = formatted.slice(i, end);
+    el.insertBefore(document.createRange().createContextualFragment(chunk), cursor);
+    i = end;
+    $('chatArea').scrollTop = $('chatArea').scrollHeight;
+    requestAnimationFrame(tick);
+  }
+  tick();
+}
+
+function formatText(text) {
+  let t = esc(text);
+  t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  t = t.replace(/\n/g, '<br>');
+  return t;
+}
+
+// ─── Thinking ────────────────────────────────────────────────────
+let thinkStartTime = 0;
+let thinkTimerInterval = null;
+
+function onThinking(d) {
+  isThinking = d.active;
+  const badge = $('hThink');
+  const text = $('hThinkText');
+  const sec = $('thinkSec');
+  const steps = $('thinkSteps');
+  const timer = $('thinkTimer');
+
+  if (d.active) {
+    badge.classList.add('vis');
+    const round = d.round || 0;
+    const max = d.max || 8;
+    text.textContent = round > 0 ? `TUR ${round}/${max}` : 'DÜŞÜNÜYOR';
+    setBrainState('thinking');
+    showDur(true);
+
+    // Show thinking panel
+    sec.style.display = '';
+    steps.innerHTML = '';
+    addThinkStep('🔍', 'İstek analiz ediliyor...', true);
+    if (d.text) addThinkStep('💬', `"${d.text.substring(0,60)}${d.text.length>60?'...':''}"`, false);
+
+    // Chat inline indicator
+    const area = $('chatArea');
+    let inl = document.getElementById('thinkInline');
+    if (!inl) {
+      inl = document.createElement('div');
+      inl.id = 'thinkInline';
+      inl.className = 'chat-think-inline';
+      inl.innerHTML = '<span class="cti-dot"></span><span class="cti-tool">DÜŞÜNÜYOR</span><span style="color:var(--dim);font-size:9px" id="thinkInlineTime">0s</span>';
+      area.appendChild(inl);
+      area.scrollTop = area.scrollHeight;
+    }
+
+    // Timer
+    thinkStartTime = Date.now();
+    if (thinkTimerInterval) clearInterval(thinkTimerInterval);
+    thinkTimerInterval = setInterval(() => {
+      const s = ((Date.now() - thinkStartTime) / 1000).toFixed(1);
+      timer.textContent = `⏱ ${s}s`;
+      const it = document.getElementById('thinkInlineTime');
+      if (it) it.textContent = `${s}s`;
+    }, 100);
+
+  } else {
+    badge.classList.remove('vis');
+    setBrainState((voiceOn || voiceEngineActive) ? 'listening' : 'idle');
+    checkHideDur();
+
+    // Complete thinking
+    if (thinkTimerInterval) { clearInterval(thinkTimerInterval); thinkTimerInterval = null; }
+    const elapsed = ((Date.now() - thinkStartTime) / 1000).toFixed(1);
+    timer.textContent = `✅ ${elapsed}s tamamlandı`;
+    timer.style.color = 'var(--green)';
+
+    // Mark all steps done
+    steps.querySelectorAll('.ts-active').forEach(s => {
+      s.classList.remove('ts-active');
+      s.classList.add('ts-done');
+      s.querySelector('.ts-icon').textContent = '✓';
+    });
+    addThinkStep('✅', `Tamamlandı — ${elapsed}s`, false);
+
+    // Remove inline indicator
+    const inl = document.getElementById('thinkInline');
+    if (inl) inl.remove();
+
+    // Auto-hide thinking panel after 5s
+    setTimeout(() => {
+      sec.style.display = 'none';
+      timer.style.color = 'var(--amber)';
+    }, 5000);
+  }
+}
+
+function addThinkStep(icon, text, active) {
+  const steps = $('thinkSteps');
+  const div = document.createElement('div');
+  div.className = 'think-step' + (active ? ' ts-active' : '');
+  div.innerHTML = `<span class="ts-icon">${icon}</span><span class="ts-text">${text}</span>`;
+  steps.appendChild(div);
+  steps.scrollTop = steps.scrollHeight;
+}
+
+function onSpeaking(d) {
+  if (d.active) {
+    setBrainState('speaking');
+    $('dVoice').classList.add('up');
+    voiceEngineActive = true;
+  } else {
+    setBrainState(isThinking ? 'thinking' : ((voiceOn || voiceEngineActive) ? 'listening' : 'idle'));
+  }
+}
+
+// ─── Tool State ──────────────────────────────────────────────────
+function onToolState(d) {
+  const row = document.querySelector(`[data-tool="${d.name}"]`);
+  if (!row) return;
+
+  if (toolTimers[d.name]) { clearTimeout(toolTimers[d.name]); delete toolTimers[d.name]; }
+
+  row.className = 'tool-row ' + (d.state || '');
+  const st = row.querySelector('.tool-st');
+
+  // Update thinking panel with tool activity
+  const sec = $('thinkSec');
+  if (sec.style.display !== 'none') {
+    // Mark previous active step as done
+    $('thinkSteps').querySelectorAll('.ts-active').forEach(s => {
+      s.classList.remove('ts-active');
+      s.classList.add('ts-done');
+      s.querySelector('.ts-icon').textContent = '✓';
+    });
+    const toolIcons = {db_query:'🗄️', web_search:'🌐', create_word_document:'📄', create_excel_document:'📊', screen_check:'👁️', open_app:'🚀', remember_fact:'🧠', analyze_image:'🖼️'};
+    const icon = toolIcons[d.name] || '⚡';
+    if (d.state === 'done') {
+      addThinkStep(icon, `${d.name} tamamlandı`, false);
+    } else {
+      addThinkStep(icon, `${d.name} çalışıyor...`, true);
+    }
+    // Update inline indicator
+    const inl = document.getElementById('thinkInline');
+    if (inl) {
+      const toolEl = inl.querySelector('.cti-tool');
+      if (toolEl) toolEl.textContent = d.state === 'done' ? `${d.name} ✓` : `${d.name}...`;
+    }
+  }
+
+  if (d.state === 'running') {
+    if (st) st.textContent = '...';
+    showDur(true);
+    // Add to chat
+    addToolLog(d.name, 'çalışıyor');
+  } else if (d.state === 'done') {
+    if (st) st.textContent = '✓';
+    toolTimers[d.name] = setTimeout(() => { row.className = 'tool-row'; if(st) st.textContent = ''; }, 4000);
+    checkHideDur();
+    addToolLog(d.name, 'tamamlandı');
+  } else if (d.state === 'error') {
+    if (st) st.textContent = '✗';
+    toolTimers[d.name] = setTimeout(() => { row.className = 'tool-row'; if(st) st.textContent = ''; }, 4000);
+    checkHideDur();
+    addToolLog(d.name, 'hata');
+  }
+}
+
+function addToolLog(name, status) {
+  const area = $('chatArea');
+  const div = document.createElement('div');
+  div.className = 'chat-line';
+  const display = TOOL_DISPLAY[name] || name;
+  div.innerHTML = `<span class="tag tag-t">ARAÇ:</span> ${esc(display)} — ${esc(status)}`;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+
+// ─── Model Activity ──────────────────────────────────────────────
+function onModelActivity(d) {
+  const chip = document.querySelector(`[data-m="${d.model}"]`);
+  if (!chip) return;
+  if (d.active) chip.classList.add('active');
+  else chip.classList.remove('active');
+}
+
+function activateChip(model) {
+  document.querySelectorAll('.m-chip').forEach(c => c.classList.remove('active'));
+  if (model.includes('gemini') || model.includes('voice')) $('cGemini').classList.add('active');
+  else if (model.includes('haiku')) $('cHaiku').classList.add('active');
+  else if (model.includes('sonnet')) $('cSonnet').classList.add('active');
+  else if (model.includes('fast')) $('cFast').classList.add('active');
+}
+
+// ─── Model Switch ────────────────────────────────────────────────
+function onModelSwitch(d) {
+  const badge = $('hSwitch');
+  if (!d.model) { badge.classList.remove('vis'); return; }
+  badge.classList.add('vis');
+  const color = MODEL_COLORS[d.model] || '#4a90d9';
+  $('hSwitchDot').style.background = color;
+  $('hSwitchName').textContent = d.model.toUpperCase();
+  $('hSwitchName').style.color = color;
+  $('hSwitchReason').textContent = d.reason || '';
+  if (switchTimer) clearTimeout(switchTimer);
+  switchTimer = setTimeout(() => badge.classList.remove('vis'), 12000);
+}
+
+// ─── DUR Button ──────────────────────────────────────────────────
+function showDur(on) { $('btnDur').classList.toggle('vis', on); }
+function checkHideDur() {
+  const any = document.querySelectorAll('.tool-row.running').length > 0;
+  if (!any && !isThinking) showDur(false);
+}
+
+// ─── Mic Mute ───────────────────────────────────────────────────
+let micMuted = false;
+function toggleMicMute() {
+  // Anında görsel geri bildirim — WebSocket cevabını bekleme
+  micMuted = !micMuted;
+  updateMuteUI();
+  if (ws && ws.readyState === 1) {
+    ws.send(JSON.stringify({action: 'mic_mute'}));
+  }
+}
+function updateMuteUI() {
+  const btn = $('btnMute');
+  btn.classList.toggle('muted', micMuted);
+  btn.innerHTML = micMuted ? '🔇' : '🎙️';
+  btn.title = micMuted ? 'Mikrofon Kapalı — Aç (K)' : 'Mikrofonu Sessize Al (K)';
+  // Basma animasyonu
+  btn.style.transform = 'scale(0.85)';
+  setTimeout(() => { btn.style.transform = ''; }, 150);
+  // Bildirim
+  showNotif({
+    title: micMuted ? '🔇 MİKROFON KAPALI' : '🎙️ MİKROFON AÇIK',
+    message: micMuted ? 'ALI seni duymuyor' : 'ALI seni duyuyor',
+    priority: micMuted ? 'urgent' : 'normal',
+    duration: 2000
+  });
+}
+function onMicMute(d) {
+  // Sunucu onayı — state'i senkronize et
+  if (d.muted !== micMuted) {
+    micMuted = d.muted;
+    updateMuteUI();
+  }
+}
+
+// ─── Shutdown ───────────────────────────────────────────────────
+function onShutdown(d) {
+  // Reconnect'i durdur
+  reconnectMs = 999999999;
+  reconnectAttempts = 999;
+  // Overlay göster
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(20px)';
+  overlay.innerHTML = `
+    <div style="font-size:64px;margin-bottom:20px">👋</div>
+    <div style="font-size:24px;font-weight:700;color:#00d4ff;margin-bottom:10px">ALI KAPATILDI</div>
+    <div style="font-size:14px;color:#94a3b8">${d.message || 'Görüşürüz.'}</div>
+    <div style="font-size:12px;color:#3d4a5c;margin-top:20px">Bu sekmeyi kapatabilirsiniz.</div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+// ─── Audio Level (drives brain animation in real-time) ──────────
+function onAudioLevel(d) {
+  audioLevel = d.level || 0;
+  $('audioMeter').style.width = (audioLevel * 100) + '%';
+  // If we're receiving audio levels > 0, voice engine is alive
+  if (audioLevel > 0.01) {
+    voiceEngineActive = true;
+    $('dVoice').classList.add('up');
+  }
+}
+
+// ─── Notes ───────────────────────────────────────────────────────
+function addNote(d, anim = true) {
+  const el = $('notes');
+  const note = document.createElement('div');
+  note.className = 'note' + (d.priority === 'urgent' ? ' urgent' : d.priority === 'warn' ? ' warn' : '');
+  if (!anim) note.style.animation = 'none';
+  note.innerHTML = `${esc(d.text || '')}<span class="note-t">${now()}</span>`;
+  el.insertBefore(note, el.firstChild);
+  while (el.children.length > 30) el.removeChild(el.lastChild);
+}
+
+// ─── Notifications ───────────────────────────────────────────────
+function showNotif(d) {
+  const box = $('notifBox');
+  const el = document.createElement('div');
+  const duration = d.duration || 5000;
+  el.className = 'notif' + (d.priority === 'urgent' ? ' urgent' : '');
+  el.innerHTML = `<div class="notif-accent"></div><div class="notif-inner"><div class="notif-title">${esc(d.title || 'BİLDİRİM')}</div><div class="notif-body">${esc(d.message || '')}</div></div><div class="notif-progress"><div class="notif-progress-bar" style="width:100%"></div></div>`;
+  box.appendChild(el);
+  // Animate progress bar
+  const bar = el.querySelector('.notif-progress-bar');
+  requestAnimationFrame(() => {
+    bar.style.transitionDuration = duration + 'ms';
+    bar.style.width = '0%';
+  });
+  setTimeout(() => { el.classList.add('exit'); setTimeout(() => el.remove(), 300); }, duration);
+  while (box.children.length > 5) box.removeChild(box.firstChild);
+}
+
+// ─── Insights ────────────────────────────────────────────────────
+function showInsight(d) {
+  const box = $('insightBox');
+  const icons = {critical:'🔴', major:'🟡', minor:'🔵'};
+  const el = document.createElement('div');
+  el.className = 'insight';
+  el.innerHTML = `
+    <div class="insight-hdr"><span class="insight-icon">${icons[d.severity] || '🔵'}</span><span class="insight-ttl">${esc(d.title || '')}</span></div>
+    <div class="insight-body">${esc(d.summary || '')}</div>
+    ${d.source ? `<div class="insight-src">${esc(d.source)}</div>` : ''}
+  `;
+  box.appendChild(el);
+  const dur = d.severity === 'critical' ? 20000 : 12000;
+  setTimeout(() => { el.classList.add('exit'); setTimeout(() => el.remove(), 300); }, dur);
+  while (box.children.length > 5) box.removeChild(box.firstChild);
+}
+
+// ─── Cost ────────────────────────────────────────────────────────
+function onCost(d) {
+  if (d.today !== undefined) { costToday = d.today; $('costToday').textContent = '$' + costToday.toFixed(2); }
+  if (d.total !== undefined) { costTotal = d.total; $('costTotal').textContent = '$' + costTotal.toFixed(2); }
+}
+
+function updateCostEstimate(tokens, model) {
+  // Rough cost estimate per 1M tokens
+  const m = (model || '').toLowerCase();
+  let rate = 0;
+  if (m.includes('sonnet')) rate = 15; // $15/1M output tokens approx
+  else if (m.includes('haiku')) rate = 1;
+  else if (m.includes('opus')) rate = 75;
+  const est = (tokens / 1000000) * rate;
+  costToday += est;
+  costTotal += est;
+  $('costToday').textContent = '$' + costToday.toFixed(3);
+  $('costTotal').textContent = '$' + costTotal.toFixed(3);
+}
+
+// ─── Daemon Status ───────────────────────────────────────────────
+function onDaemonStatus(d) {
+  const map = {web:'dWeb', telegram:'dTg', voice:'dVoice', database:'dDb'};
+  for (const [key, id] of Object.entries(map)) {
+    const status = d[key];
+    if (!status) continue;
+    const el = $(id);
+    el.classList.remove('up','deg','down');
+    if (status === 'ok') {
+      el.classList.add('up');
+      if (key === 'voice') {
+        voiceEngineActive = true;
+        setBrainState('listening');  // Voice engine active = brain listening
+      }
+    }
+    else if (status === 'degraded') el.classList.add('deg');
+    else if (status === 'down') el.classList.add('down');
+  }
+  // Health widget
+  const healthMap = {
+    latency: {dot:'hLatency', val:'hLatencyV', ok:'Düşük', bad:'Yüksek'},
+    database: {dot:'hDb', val:'hDbV', ok:'Bağlı', bad:'Sorun'},
+  };
+  for (const [key, cfg] of Object.entries(healthMap)) {
+    const status = d[key];
+    if (!status) continue;
+    $(cfg.dot).className = 'h-dot ' + (status === 'ok' ? 'h-ok' : status === 'degraded' ? 'h-warn' : 'h-err');
+    $(cfg.val).textContent = status === 'ok' ? cfg.ok : cfg.bad;
+  }
+}
+
+function onEnvStatus(d) {
+  // Traffic light style
+  if (d.anthropic !== undefined) {
+    $('hAnthro').className = 'h-dot ' + (d.anthropic ? 'h-ok' : 'h-err');
+    $('hAnthroV').textContent = d.anthropic ? 'Aktif' : 'Sorun';
+  }
+  if (d.database !== undefined) {
+    $('hDb').className = 'h-dot ' + (d.database ? 'h-ok' : 'h-err');
+    $('hDbV').textContent = d.database ? 'Bağlı' : 'Yok';
+  }
+  if (d.telegram !== undefined) {
+    $('hTg').className = 'h-dot ' + (d.telegram ? 'h-ok' : 'h-err');
+    $('hTgV').textContent = d.telegram ? 'Aktif' : 'Yok';
+  }
+}
+
+// ─── Telegram Monitor ─────────────────────────────────────────
+function onTelegramMention(d) {
+  // Prominent notification
+  showNotif({
+    title: 'TELEGRAM ETİKET',
+    message: (d.sender || 'Biri') + ' (' + (d.chat_name || '?') + '): ' + (d.text || '').slice(0, 120),
+    priority: 'urgent',
+    duration: 10000,
+  });
+  // Also add as urgent note
+  addNote({
+    text: '[TG] ' + (d.sender || 'Biri') + ' seni etiketledi: ' + (d.text || '').slice(0, 80),
+    priority: 'urgent',
+  });
+}
+
+function onTelegramMessage(d) {
+  // Only show in notes for mentions (non-mention messages are just tracked)
+  if (d.is_mention) return; // Already handled by onTelegramMention
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TOOL RACK
+// ═══════════════════════════════════════════════════════════════
+function buildToolRack(serverTools) {
+  const rack = $('toolRack');
+  rack.innerHTML = '';
+
+  for (const [cat, cfg] of Object.entries(TOOL_CATS)) {
+    const visTools = cfg.tools.filter(t => serverTools.includes(t));
+    if (!visTools.length) continue;
+
+    const catDiv = document.createElement('div');
+    catDiv.className = 'tool-cat';
+    catDiv.innerHTML = `<div class="tool-cat-hdr" style="color:${cfg.color}">${cat}</div>`;
+
+    for (const t of visTools) {
+      const row = document.createElement('div');
+      row.className = 'tool-row';
+      row.setAttribute('data-tool', t);
+      row.innerHTML = `<div class="tool-dot" style="color:${cfg.color}"></div><span class="tool-nm">${TOOL_DISPLAY[t] || t}</span><span class="tool-st"></span>`;
+      catDiv.appendChild(row);
+    }
+    rack.appendChild(catDiv);
+  }
+
+  // Capabilities
+  const caps = $('caps');
+  const capMap = {
+    'DB Sorgu': serverTools.includes('db_query'),
+    'Web Arama': serverTools.includes('web_search'),
+    'Uygulama': serverTools.includes('open_app'),
+    'Dosya': serverTools.includes('list_files'),
+    'Ses Kontrol': serverTools.includes('computer_settings'),
+    'URL Aç': serverTools.includes('open_url'),
+    'Telegram': true,
+    'Alert': true,
+  };
+  caps.innerHTML = Object.entries(capMap).map(([name, on]) =>
+    `<span class="cap-tag ${on ? 'on' : 'off'}">${name}</span>`
+  ).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NEURAL BRAIN — Ambient Neural Field (Full Viewport)
+// ═══════════════════════════════════════════════════════════════
+const canvas = $('brainCanvas');
+const ctx = canvas.getContext('2d');
+let W, H, cx, cy, frame = 0;
+let neurons = [], particles = [], sparks = [], pulseRings = [], waves = [];
+
+// 3 rings: 6 core, 12 middle, 18 outer
+const N_CORE = 6;
+const N_MIDDLE = 12;
+const N_OUTER = 18;
+const MAX_PARTICLES = 120;
+
+// Hex grid cache
+let hexGrid = [];
+
+function resizeBrain() {
+  const dpr = window.devicePixelRatio || 1;
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  cx = W / 2;
+  cy = H / 2;
+  initNeurons();
+  buildHexGrid();
+}
+
+function buildHexGrid() {
+  hexGrid = [];
+  const size = 40;
+  const hSpacing = size * 1.732;
+  const vSpacing = size * 1.5;
+  for (let row = -2; row < H / vSpacing + 2; row++) {
+    for (let col = -2; col < W / hSpacing + 2; col++) {
+      const x = col * hSpacing + (row % 2 ? hSpacing / 2 : 0);
+      const y = row * vSpacing;
+      hexGrid.push({ x, y, phase: Math.random() * Math.PI * 2 });
+    }
+  }
+}
+
+function initNeurons() {
+  neurons = [];
+  const minDim = Math.min(W, H);
+  const r1 = minDim * 0.08;   // core ring
+  const r2 = minDim * 0.18;   // middle ring
+  const r3 = minDim * 0.30;   // outer ring
+
+  for (let i = 0; i < N_CORE; i++) {
+    const a = (Math.PI * 2 / N_CORE) * i;
+    neurons.push({ ring: 'core', angle: a, baseR: r1, r: 5, phase: Math.random() * Math.PI * 2 });
+  }
+  for (let i = 0; i < N_MIDDLE; i++) {
+    const a = (Math.PI * 2 / N_MIDDLE) * i + 0.26;
+    neurons.push({ ring: 'middle', angle: a, baseR: r2, r: 3.5, phase: Math.random() * Math.PI * 2 });
+  }
+  for (let i = 0; i < N_OUTER; i++) {
+    const a = (Math.PI * 2 / N_OUTER) * i + 0.14;
+    neurons.push({ ring: 'outer', angle: a, baseR: r3, r: 2.5, phase: Math.random() * Math.PI * 2 });
+  }
+}
+
+function setBrainState(s) {
+  brainState = s;
+  const lbl = $('brainLabel');
+  lbl.className = 'brain-label ' + s;
+  const labels = { idle: 'HAZIR', listening: 'DİNLİYOR', thinking: 'DÜŞÜNÜYOR', speaking: 'KONUŞUYOR' };
+  lbl.textContent = labels[s] || s.toUpperCase();
+}
+
+function drawBrain() {
+  ctx.clearRect(0, 0, W, H);
+  frame++;
+  const t = frame * 0.016;
+
+  // State parameters
+  let cr, cg, cb, intensity, spinSpeed, pRate, sparkRate;
+  if (brainState === 'thinking') {
+    cr = 212; cg = 160; cb = 23;
+    intensity = 0.9 + Math.sin(t * 3) * 0.1;
+    spinSpeed = 0.012; pRate = 0.4; sparkRate = 0.22;
+  } else if (brainState === 'speaking') {
+    cr = 0; cg = 212; cb = 255;
+    intensity = 0.65 + audioLevel * 0.35;
+    spinSpeed = 0.005; pRate = 0.15 + audioLevel * 0.2; sparkRate = 0;
+  } else if (brainState === 'listening') {
+    cr = 34; cg = 211; cb = 238;
+    intensity = 0.5 + Math.sin(t * 1.8) * 0.15;
+    spinSpeed = 0.003; pRate = 0.07; sparkRate = 0;
+  } else {
+    cr = 74; cg = 144; cb = 217;
+    intensity = 0.3 + Math.sin(t * 0.7) * 0.06;
+    spinSpeed = 0.0015; pRate = 0.03; sparkRate = 0;
+  }
+
+  const gc = (a) => `rgba(${cr},${cg},${cb},${Math.max(0, Math.min(1, a)).toFixed(3)})`;
+
+  // Rotate all neurons
+  neurons.forEach(n => {
+    const dir = n.ring === 'core' ? 1 : n.ring === 'middle' ? -0.6 : 0.35;
+    n.angle += spinSpeed * dir;
+    n.x = cx + Math.cos(n.angle) * n.baseR;
+    n.y = cy + Math.sin(n.angle) * n.baseR;
+  });
+
+  const core = neurons.filter(n => n.ring === 'core');
+  const middle = neurons.filter(n => n.ring === 'middle');
+  const outer = neurons.filter(n => n.ring === 'outer');
+
+  // ── Hexagonal background grid with subtle movement ──
+  const hexAlpha = 0.018 * intensity;
+  if (hexAlpha > 0.002) {
+    ctx.strokeStyle = gc(hexAlpha);
+    ctx.lineWidth = 0.5;
+    const hexSize = 20;
+    hexGrid.forEach(h => {
+      const ox = Math.sin(t * 0.3 + h.phase) * 1.5;
+      const oy = Math.cos(t * 0.25 + h.phase) * 1.5;
+      const px = h.x + ox;
+      const py = h.y + oy;
+      ctx.beginPath();
+      for (let v = 0; v < 6; v++) {
+        const angle = (Math.PI / 3) * v - Math.PI / 6;
+        const vx = px + hexSize * Math.cos(angle);
+        const vy = py + hexSize * Math.sin(angle);
+        if (v === 0) ctx.moveTo(vx, vy);
+        else ctx.lineTo(vx, vy);
+      }
+      ctx.closePath();
+      ctx.stroke();
+    });
+  }
+
+  // ── Speaking: wave propagation — cyan/green rings expanding outward with audioLevel ──
+  if (brainState === 'speaking' && audioLevel > 0.08 && frame % 8 === 0 && waves.length < 8) {
+    waves.push({ r: 10, maxR: Math.min(W, H) * 0.5, life: 60, color: 'cyan' });
+  }
+  // Listening: cyan pulses synced to audioLevel, ripple rings from center
+  if (brainState === 'listening' && audioLevel > 0.05 && frame % 20 === 0 && waves.length < 4) {
+    waves.push({ r: 5, maxR: Math.min(W, H) * 0.25, life: 40, color: 'listen' });
+  }
+  waves = waves.filter(w => {
+    const speed = w.color === 'listen' ? 1.5 : (2.5 + audioLevel * 3);
+    w.r += speed;
+    w.life--;
+    if (w.life <= 0 || w.r >= w.maxR) return false;
+    const frac = w.life / (w.color === 'listen' ? 40 : 60);
+    const a = frac * 0.25 * intensity;
+    if (w.color === 'listen') {
+      ctx.strokeStyle = `rgba(34,211,238,${a.toFixed(3)})`;
+    } else {
+      const g = Math.min(255, 212 + (1 - frac) * 43);
+      ctx.strokeStyle = `rgba(0,${Math.round(g)},255,${a.toFixed(3)})`;
+    }
+    ctx.lineWidth = 2.5 * frac;
+    ctx.beginPath();
+    ctx.arc(cx, cy, w.r, 0, Math.PI * 2);
+    ctx.stroke();
+    return true;
+  });
+
+  // ── Bezier curve connections: center → core ──
+  core.forEach((n, i) => {
+    if (brainState === 'thinking') {
+      const pulse = Math.sin(t * 4.5 + i * 1.05) * 0.5 + 0.5;
+      const a = (0.1 + 0.55 * pulse) * intensity;
+      const w = 0.8 + pulse * 1.8;
+      const cpOff = Math.sin(t * 3.5 + i * 1.4) * 22;
+      const mx = (cx + n.x) / 2 + cpOff;
+      const my = (cy + n.y) / 2 - cpOff;
+      ctx.strokeStyle = gc(a);
+      ctx.lineWidth = w;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.quadraticCurveTo(mx, my, n.x, n.y);
+      ctx.stroke();
+    } else if (brainState === 'speaking') {
+      const wave = Math.sin(t * 2.5 + i * 0.8) * 0.5 + 0.5;
+      const a = (0.06 + 0.2 * wave + audioLevel * 0.18) * intensity;
+      ctx.strokeStyle = gc(a);
+      ctx.lineWidth = 0.8 + audioLevel * 1.5;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(n.x, n.y);
+      ctx.stroke();
+    } else {
+      const breathe = Math.sin(t * 0.6 + i * 0.5) * 0.5 + 0.5;
+      ctx.strokeStyle = gc((0.03 + 0.04 * breathe) * intensity);
+      ctx.lineWidth = 0.6;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(n.x, n.y);
+      ctx.stroke();
+    }
+  });
+
+  // ── Core → middle bezier connections with energy particles flowing ──
+  middle.forEach((n, i) => {
+    const src = core[i % N_CORE];
+    if (brainState === 'thinking') {
+      const pulse = Math.sin(t * 3 + i * 0.7) * 0.5 + 0.5;
+      const a = (0.05 + 0.3 * pulse) * intensity;
+      const cpx = (src.x + n.x) / 2 + Math.sin(t * 2 + i) * 15;
+      const cpy = (src.y + n.y) / 2 + Math.cos(t * 2.2 + i) * 15;
+      ctx.strokeStyle = gc(a);
+      ctx.lineWidth = 0.6 + pulse * 0.8;
+      ctx.beginPath();
+      ctx.moveTo(src.x, src.y);
+      ctx.quadraticCurveTo(cpx, cpy, n.x, n.y);
+      ctx.stroke();
+    } else {
+      const a = (0.025 + 0.015 * Math.sin(t * 0.5 + i)) * intensity;
+      ctx.strokeStyle = gc(a);
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(src.x, src.y);
+      ctx.lineTo(n.x, n.y);
+      ctx.stroke();
+    }
+  });
+
+  // ── Middle → outer connections ──
+  outer.forEach((n, i) => {
+    const src = middle[i % N_MIDDLE];
+    let a = 0.025 * intensity;
+    if (brainState === 'thinking') a = (0.03 + 0.15 * Math.max(0, Math.sin(t * 2.8 + i))) * intensity;
+    ctx.strokeStyle = gc(a);
+    ctx.lineWidth = 0.4;
+    ctx.beginPath();
+    ctx.moveTo(src.x, src.y);
+    ctx.lineTo(n.x, n.y);
+    ctx.stroke();
+  });
+
+  // ── Core ring mesh ──
+  for (let i = 0; i < N_CORE; i++) {
+    const j = (i + 1) % N_CORE;
+    ctx.strokeStyle = gc(0.04 * intensity);
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(core[i].x, core[i].y);
+    ctx.lineTo(core[j].x, core[j].y);
+    ctx.stroke();
+  }
+
+  // ── Middle ring mesh ──
+  for (let i = 0; i < N_MIDDLE; i++) {
+    const j = (i + 1) % N_MIDDLE;
+    ctx.strokeStyle = gc(0.02 * intensity);
+    ctx.lineWidth = 0.4;
+    ctx.beginPath();
+    ctx.moveTo(middle[i].x, middle[i].y);
+    ctx.lineTo(middle[j].x, middle[j].y);
+    ctx.stroke();
+  }
+
+  // ── Thinking: zigzag electric storm sparks ──
+  if (brainState === 'thinking' && frame % 2 === 0 && sparks.length < 10) {
+    const si = Math.floor(Math.random() * N_CORE);
+    const ti = Math.floor(Math.random() * N_OUTER);
+    const sx = core[si].x, sy = core[si].y;
+    const ex = outer[ti].x, ey = outer[ti].y;
+    const segs = 4 + Math.floor(Math.random() * 3);
+    const points = [];
+    for (let s = 0; s <= segs; s++) {
+      const frac = s / segs;
+      const px = sx + (ex - sx) * frac + (s > 0 && s < segs ? (Math.random() - 0.5) * 30 : 0);
+      const py = sy + (ey - sy) * frac + (s > 0 && s < segs ? (Math.random() - 0.5) * 30 : 0);
+      points.push({ x: px, y: py });
+    }
+    sparks.push({ points, life: 12, maxLife: 12 });
+  }
+  sparks = sparks.filter(s => {
+    s.life--;
+    if (s.life <= 0) return false;
+    const frac = s.life / s.maxLife;
+    const a = 0.8 * frac;
+    ctx.strokeStyle = `rgba(255,220,80,${a.toFixed(3)})`;
+    ctx.lineWidth = 1 + frac * 1.5;
+    ctx.beginPath();
+    ctx.moveTo(s.points[0].x, s.points[0].y);
+    for (let i = 1; i < s.points.length; i++) {
+      ctx.lineTo(s.points[i].x, s.points[i].y);
+    }
+    ctx.stroke();
+    const last = s.points[s.points.length - 1];
+    ctx.beginPath();
+    ctx.arc(last.x, last.y, 4 * frac, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,240,120,${(a * 0.5).toFixed(3)})`;
+    ctx.fill();
+    return true;
+  });
+
+  // ── Spawn particles (energy flowing along connections) ──
+  if (Math.random() < pRate && particles.length < MAX_PARTICLES) {
+    if (brainState === 'thinking') {
+      // Fast particle bursts from core neurons
+      const n = core[Math.floor(Math.random() * N_CORE)];
+      const angle = n.angle + (Math.random() - 0.5) * 1.2;
+      const speed = 2 + Math.random() * 3;
+      particles.push({ x: n.x, y: n.y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 25 + Math.random() * 20, maxLife: 45, r: 1.5 + Math.random(), type: 'burst' });
+    } else if (brainState === 'speaking') {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = audioLevel * 3 + 0.8;
+      particles.push({ x: cx, y: cy, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 50 + Math.random() * 25, maxLife: 75, r: 1 + audioLevel * 2.5, type: 'wave' });
+    } else if (brainState === 'listening') {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 15 + Math.random() * neurons[0].baseR * 2;
+      const dir = angle + Math.PI * 0.5 + (Math.random() - 0.5) * 0.4;
+      const speed = 0.15 + Math.random() * 0.25;
+      particles.push({ x: cx + dist * Math.cos(angle), y: cy + dist * Math.sin(angle), vx: Math.cos(dir) * speed, vy: Math.sin(dir) * speed, life: 180 + Math.random() * 80, maxLife: 260, r: 1.2, type: 'drift' });
+    } else {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 20 + Math.random() * Math.min(W, H) * 0.15;
+      const dir = angle + Math.PI * 0.5 + (Math.random() - 0.5) * 0.5;
+      const speed = 0.08 + Math.random() * 0.15;
+      particles.push({ x: cx + dist * Math.cos(angle), y: cy + dist * Math.sin(angle), vx: Math.cos(dir) * speed, vy: Math.sin(dir) * speed, life: 250 + Math.random() * 120, maxLife: 370, r: 1.1, type: 'drift' });
+    }
+  }
+
+  // ── Update & draw particles ──
+  particles = particles.filter(p => {
+    p.x += p.vx; p.y += p.vy; p.life--;
+    if (p.type === 'drift') { p.vx *= 0.998; p.vy *= 0.998; }
+    if (p.life <= 0) return false;
+    const frac = p.life / p.maxLife;
+    const a = 0.7 * frac * intensity;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (0.5 + frac * 0.5), 0, Math.PI * 2);
+    if (p.type === 'burst') ctx.fillStyle = `rgba(255,200,60,${a.toFixed(3)})`;
+    else if (p.type === 'wave') ctx.fillStyle = gc(a);
+    else ctx.fillStyle = gc(a * 0.4);
+    ctx.fill();
+    return true;
+  });
+
+  // ── Pulse rings ──
+  const maxPulse = Math.min(W, H) * 0.22;
+  if (Math.random() < (brainState === 'thinking' ? 0.12 : brainState === 'speaking' ? 0.06 : 0.012) && pulseRings.length < 6) {
+    pulseRings.push(5);
+  }
+  pulseRings = pulseRings.map(r => r + (brainState === 'thinking' ? 2.5 : brainState === 'speaking' ? 1.5 : 0.4)).filter(r => {
+    if (r >= maxPulse) return false;
+    const a = 0.4 * (1 - r / maxPulse) * intensity;
+    ctx.strokeStyle = gc(a);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+    return true;
+  });
+
+  // ── Outer neurons ──
+  outer.forEach((n, i) => {
+    const fire = brainState === 'thinking' ? Math.max(0, Math.sin(t * 3 + i * 1.5)) : 0;
+    const a = (0.25 + 0.75 * fire) * intensity;
+    ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+    ctx.fillStyle = gc(a); ctx.fill();
+    if (fire > 0.3) {
+      ctx.beginPath(); ctx.arc(n.x, n.y, n.r * 3, 0, Math.PI * 2);
+      ctx.fillStyle = gc(0.06 * fire); ctx.fill();
+    }
+  });
+
+  // ── Middle neurons ──
+  middle.forEach((n, i) => {
+    let fire;
+    if (brainState === 'thinking') fire = Math.max(0, Math.sin(t * 3.5 + i * 0.9));
+    else if (brainState === 'speaking') fire = Math.max(0, Math.sin(t * 2 + i * 0.7)) * 0.4 + audioLevel * 0.25;
+    else fire = Math.max(0, Math.sin(t * 0.7 + i * 0.5)) * 0.12;
+
+    if (fire > 0.15) {
+      ctx.beginPath(); ctx.arc(n.x, n.y, n.r * 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = gc(0.05 * fire * intensity); ctx.fill();
+    }
+    const a = (0.3 + 0.7 * fire) * intensity;
+    ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+    ctx.fillStyle = gc(a); ctx.fill();
+  });
+
+  // ── Core neurons ──
+  core.forEach((n, i) => {
+    let fire;
+    if (brainState === 'thinking') fire = Math.max(0, Math.sin(t * 4.5 + i * 1.1));
+    else if (brainState === 'speaking') fire = Math.max(0, Math.sin(t * 2.2 + i * 0.8)) * 0.5 + audioLevel * 0.35;
+    else if (brainState === 'listening') fire = Math.max(0, Math.sin(t * 1.5 + i * 0.7)) * 0.2 + audioLevel * 0.3;
+    else fire = Math.max(0, Math.sin(t * 0.8 + i * 0.6)) * 0.15;
+
+    const baseR = brainState === 'thinking' ? 7 : 5;
+
+    // Glow
+    if (fire > 0.2) {
+      const glowR = baseR * (2.5 + fire * 3.5);
+      ctx.beginPath(); ctx.arc(n.x, n.y, glowR, 0, Math.PI * 2);
+      ctx.fillStyle = gc(0.05 * fire * intensity); ctx.fill();
+    }
+
+    const a = (0.4 + 0.6 * fire) * intensity;
+    ctx.beginPath(); ctx.arc(n.x, n.y, baseR, 0, Math.PI * 2);
+    ctx.fillStyle = gc(a); ctx.fill();
+  });
+
+  // ── Central orb with pulsing glow ──
+  const orbR = Math.min(W, H) * 0.04;
+  const breathe = brainState === 'speaking' ? audioLevel * 0.15 : brainState === 'thinking' ? Math.sin(t * 2.5) * 0.06 : Math.sin(t * 0.8) * 0.03;
+  const scale = 1 + breathe;
+
+  // Wide glow
+  const grad0 = ctx.createRadialGradient(cx, cy, 0, cx, cy, orbR * scale * 4);
+  grad0.addColorStop(0, gc(0.08 * intensity));
+  grad0.addColorStop(1, gc(0));
+  ctx.fillStyle = grad0;
+  ctx.beginPath(); ctx.arc(cx, cy, orbR * scale * 4, 0, Math.PI * 2); ctx.fill();
+
+  // Medium glow
+  const grad1 = ctx.createRadialGradient(cx, cy, 0, cx, cy, orbR * scale * 2.5);
+  grad1.addColorStop(0, gc(0.15 * intensity));
+  grad1.addColorStop(1, gc(0));
+  ctx.fillStyle = grad1;
+  ctx.beginPath(); ctx.arc(cx, cy, orbR * scale * 2.5, 0, Math.PI * 2); ctx.fill();
+
+  // Core sphere
+  const grad2 = ctx.createRadialGradient(cx - orbR * 0.3, cy - orbR * 0.3, 0, cx, cy, orbR * scale);
+  grad2.addColorStop(0, '#1a2d45');
+  grad2.addColorStop(1, '#080e1a');
+  ctx.fillStyle = grad2;
+  ctx.beginPath(); ctx.arc(cx, cy, orbR * scale, 0, Math.PI * 2); ctx.fill();
+
+  // Orb ring
+  ctx.strokeStyle = gc(0.3 * intensity);
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(cx, cy, orbR * scale + 3, 0, Math.PI * 2); ctx.stroke();
+
+  // Second ring
+  ctx.strokeStyle = gc(0.1 * intensity);
+  ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.arc(cx, cy, orbR * scale + 8, 0, Math.PI * 2); ctx.stroke();
+
+  // "M" text in orb
+  ctx.fillStyle = gc(0.65 * intensity);
+  ctx.font = `700 ${Math.max(10, orbR * 0.6)}px 'Inter'`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('M', cx, cy);
+
+  // ── Thinking: progress arc + orbiting comets with trails ──
+  if (brainState === 'thinking') {
+    const progress = (Math.sin(t * 0.8) * 0.5 + 0.5);
+    const progR = orbR * scale + 14;
+    ctx.strokeStyle = 'rgba(0,200,104,0.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cx, cy, progR, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress); ctx.stroke();
+
+    // 3 orbiting comets
+    const cometR = Math.min(W, H) * 0.14;
+    for (let i = 0; i < 3; i++) {
+      const angle = (frame * 0.055 + i * (Math.PI * 2 / 3));
+      const px = cx + cometR * Math.cos(angle);
+      const py = cy + cometR * Math.sin(angle);
+
+      // Comet head
+      ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#d4a017'; ctx.fill();
+      ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(212,160,23,0.12)'; ctx.fill();
+
+      // Trail
+      for (let j = 1; j < 10; j++) {
+        const ta = angle - j * 0.07;
+        const tx = cx + cometR * Math.cos(ta);
+        const ty = cy + cometR * Math.sin(ta);
+        const trailA = Math.max(0, 0.45 - j * 0.05);
+        ctx.beginPath(); ctx.arc(tx, ty, 2.5 - j * 0.2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(212,160,23,${trailA.toFixed(3)})`; ctx.fill();
+      }
+    }
+  }
+
+  requestAnimationFrame(drawBrain);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VOICE (Web Speech API)
+// ═══════════════════════════════════════════════════════════════
+function toggleVoice() {
+  voiceOn = !voiceOn;
+  $('btnMic').classList.toggle('on', voiceOn);
+  if (voiceOn) startListening(); else stopListening();
+}
+
+function startListening() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    onTranscript({role:'system', text:'Tarayıcı ses tanıma desteklemiyor.'});
+    voiceOn = false; $('btnMic').classList.remove('on');
+    return;
+  }
+  recognition = new SR();
+  recognition.lang = 'tr-TR';
+  recognition.interimResults = false;
+  recognition.continuous = true;
+
+  recognition.onresult = e => {
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        const t = e.results[i][0].transcript.trim();
+        if (t) send('message', {text: t});
+      }
+    }
+  };
+  recognition.onend = () => { if (voiceOn) try { recognition.start(); } catch(e) {} };
+  recognition.onerror = e => {
+    if (e.error === 'not-allowed') {
+      onTranscript({role:'system', text:'Mikrofon izni gerekli.'});
+      voiceOn = false; $('btnMic').classList.remove('on');
+    }
+  };
+  try { recognition.start(); setBrainState('listening'); } catch(e) {}
+}
+
+function stopListening() {
+  if (recognition) try { recognition.stop(); } catch(e) {}
+  setBrainState('idle');
+}
+
+function speakText(text) {
+  const utt = new SpeechSynthesisUtterance(text.length > 400 ? text.slice(0, 400) + '...' : text);
+  utt.lang = 'tr-TR'; utt.rate = 1.05;
+  const voices = speechSynthesis.getVoices();
+  const tr = voices.find(v => v.lang.startsWith('tr'));
+  if (tr) utt.voice = tr;
+  setBrainState('speaking');
+  utt.onend = () => setBrainState(voiceOn ? 'listening' : 'idle');
+  speechSynthesis.speak(utt);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CAPABILITIES MODAL
+// ═══════════════════════════════════════════════════════════════
+function openCapabilities() {
+  $('capOverlay').classList.add('active');
+}
+function closeCapabilities() {
+  $('capOverlay').classList.remove('active');
+}
+function capPrompt(text) {
+  closeCapabilities();
+  $('msgInput').value = text;
+  $('msgInput').focus();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GUIDE SYSTEM
+// ═══════════════════════════════════════════════════════════════
+const guideSections = ['welcome','workflow','research','case','docs','icra','office','comms','tips'];
+const guideTitles = {
+  welcome:'&#127968; Ho\u015f Geldiniz', workflow:'\u2600\ufe0f G\u00fcnl\u00fck \u0130\u015f Ak\u0131\u015f\u0131',
+  research:'\ud83d\udcda Hukuki Ara\u015ft\u0131rma', 'case':'\u2696\ufe0f Dava Y\u00f6netimi',
+  docs:'\ud83d\udcc4 Belge \u0130\u015flemleri', icra:'\ud83c\udfe6 \u0130cra & Hesaplamalar',
+  office:'\ud83c\udfe2 B\u00fcro Y\u00f6netimi', comms:'\ud83d\udcac \u0130leti\u015fim',
+  tips:'\ud83d\udca1 \u0130pu\u00e7lar\u0131 & P\u00fcf Noktalar\u0131'
+};
+
+function openGuide() {
+  const last = sessionStorage.getItem('guideSection');
+  if (last && guideSections.includes(last)) guideGoTo(last, true);
+  $('guideOverlay').classList.add('active');
+}
+function closeGuide() {
+  $('guideOverlay').classList.remove('active');
+}
+function guideGoTo(section, skipStore) {
+  // Update nav
+  document.querySelectorAll('.guide-nav-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.section === section);
+  });
+  // Update sections
+  document.querySelectorAll('.guide-section').forEach(el => {
+    el.classList.toggle('active', el.id === 'sec-' + section);
+  });
+  // Update title
+  $('guideMainTitle').innerHTML = guideTitles[section] || section;
+  // Scroll content to top
+  $('guideContent').scrollTop = 0;
+  // Store
+  if (!skipStore) sessionStorage.setItem('guideSection', section);
+}
+function tryPrompt(text) {
+  closeGuide();
+  $('msgInput').value = text;
+  $('msgInput').focus();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// WELCOME SECTION
+// ═══════════════════════════════════════════════════════════════
+function welcomeAction(text) {
+  $('msgInput').value = text;
+  $('msgInput').focus();
+}
+function hideWelcome() {
+  const el = $('welcomeSection');
+  if (el) el.style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INPUT & KEYBOARD
+// ═══════════════════════════════════════════════════════════════
+function sendMessage() {
+  const input = $('msgInput');
+  const text = input.value.trim();
+  if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+  send('message', {text});
+  input.value = '';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  // Drawer toggles
+  $('toggleLeft').addEventListener('click', toggleDrawerLeft);
+  $('toggleRight').addEventListener('click', toggleDrawerRight);
+  $('drawerOverlay').addEventListener('click', closeAllDrawers);
+
+  // Capabilities modal
+  $('btnCap').addEventListener('click', openCapabilities);
+  $('capClose').addEventListener('click', closeCapabilities);
+  $('capOverlay').addEventListener('click', e => { if (e.target === $('capOverlay')) closeCapabilities(); });
+
+  // Guide modal
+  $('btnGuide').addEventListener('click', openGuide);
+  $('guideClose').addEventListener('click', closeGuide);
+  $('guideOverlay').addEventListener('click', e => { if (e.target === $('guideOverlay')) closeGuide(); });
+
+  // Mute button (must be inside DOMContentLoaded)
+  $('btnMute').onclick = toggleMicMute;
+
+  // Input handlers
+  $('msgInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+  $('btnSend').addEventListener('click', sendMessage);
+  $('btnMic').addEventListener('click', toggleVoice);
+  $('btnSession').addEventListener('click', () => location.reload());
+  $('btnDur').addEventListener('click', () => {
+    send('cancel');
+    showDur(false);
+    isThinking = false;
+    $('hThink').classList.remove('vis');
+    setBrainState(voiceOn ? 'listening' : 'idle');
+    showNotif({title:'İPTAL', message:'İşlem iptal edildi.', priority:'urgent', duration:3000});
+  });
+  $('btnScan').addEventListener('click', () => {
+    send('request_env_status');
+    $('btnScan').textContent = '...';
+    $('btnScan').disabled = true;
+    setTimeout(() => { $('btnScan').textContent = 'TARA'; $('btnScan').disabled = false; }, 3000);
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    if (e.key === 'm' && !e.ctrlKey && !e.metaKey && document.activeElement !== $('msgInput')) {
+      e.preventDefault();
+      toggleVoice();
+    }
+    if (e.key === 'k' && !e.ctrlKey && !e.metaKey && document.activeElement !== $('msgInput')) {
+      e.preventDefault();
+      toggleMicMute();
+    }
+    if (e.key === 'Escape') {
+      // Close guide, capabilities modal and drawers on Escape
+      closeGuide();
+      closeCapabilities();
+      closeAllDrawers();
+      if (isThinking) {
+        send('cancel');
+        showDur(false);
+        isThinking = false;
+        $('hThink').classList.remove('vis');
+        setBrainState(voiceOn ? 'listening' : 'idle');
+      }
+    }
+    if (e.key === '/' && document.activeElement !== $('msgInput')) {
+      e.preventDefault();
+      $('msgInput').focus();
+    }
+    // Guide arrow key navigation
+    if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && $('guideOverlay').classList.contains('active')) {
+      e.preventDefault();
+      const cur = sessionStorage.getItem('guideSection') || 'welcome';
+      const idx = guideSections.indexOf(cur);
+      if (idx === -1) return;
+      const next = e.key === 'ArrowDown'
+        ? guideSections[Math.min(idx + 1, guideSections.length - 1)]
+        : guideSections[Math.max(idx - 1, 0)];
+      guideGoTo(next);
+    }
+  });
+
+  // Brain init
+  resizeBrain();
+  window.addEventListener('resize', resizeBrain);
+  drawBrain();
+
+  // WebSocket
+  connectWS();
+
+  // Welcome note
+  setTimeout(() => {
+    addNote({text:'Hoş geldin — ALI hazır. Yazarak veya konuşarak iletişim kurabilirsin.', priority:'normal'}, true);
+  }, 600);
+
+  // Set initial health
+  $('hAnthro').className = 'h-dot h-ok'; $('hAnthroV').textContent = 'Aktif';
+  $('dWeb').classList.add('up');
+});
+</script>
+</body>
+</html>

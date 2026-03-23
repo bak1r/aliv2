@@ -1,0 +1,22 @@
+{
+  "domain": "savunma_teknikleri",
+  "description": "Savunma teknikleri ve stratejileri bilgi bankasi",
+  "files": {
+    "beraat_gerekceleri.md": {
+      "title": "Beraat Gerekceleri ve Stratejileri",
+      "keywords": ["beraat", "aklanma", "masumiyet", "delil yetersizligi", "suc ispatlanmadi", "savunma", "tahliye", "karar", "gerekce", "hukuka aykiri delil"]
+    },
+    "usul_itirazlari.md": {
+      "title": "Usul Itirazlari",
+      "keywords": ["usul", "itiraz", "yargilama", "CMK", "durusma", "tebligat", "mudafi", "savunma hakki", "sorusturma", "kovusturma", "gorev", "yetki", "zamanasiml", "hak ihlali"]
+    },
+    "delil_degerlendirme.md": {
+      "title": "Delil Degerlendirme Rehberi",
+      "keywords": ["delil", "kanit", "tanık", "bilirkisi", "dijital", "belge", "ifade", "beyan", "forensik", "hukuka aykiri", "yasak delil", "ispat", "degerlendirme"]
+    },
+    "ceza_indirimi.md": {
+      "title": "Ceza Indirimi Stratejileri",
+      "keywords": ["indirim", "ceza", "etkin pismanlik", "iyi hal", "tahrik", "haksiz tahrik", "tesebbus", "istirak", "yardim", "zincirleme", "yas", "akil hastaligi", "takdiri indirim"]
+    }
+  }
+}
