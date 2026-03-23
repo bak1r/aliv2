@@ -10,9 +10,19 @@ let lastQR = null;
 
 const client = new Client({
     authStrategy: new LocalAuth({ dataPath: '.wwebjs_auth' }),
+    webVersionCache: {
+        type: 'remote',
+        remotePath: 'https://raw.githubusercontent.com/nicstephens/nicstephens.github.io/main/nicpage/nicpage1_files/',
+    },
     puppeteer: {
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--single-process'
+        ]
     }
 });
 

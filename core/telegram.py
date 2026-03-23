@@ -347,9 +347,11 @@ def start_telegram_bot(allowed_users: list[int] | None = None):
         try:
             _application = _build_application()
             _running = True
+            # stop_signals=None -> sinyal handler kaydetme (thread icinde calistigimiz icin)
             _application.run_polling(
                 drop_pending_updates=True,
                 allowed_updates=Update.ALL_TYPES,
+                stop_signals=None,
             )
         except Exception as e:
             log.error(f"[Telegram] Bot hatasi: {e}")
