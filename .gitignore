@@ -37,3 +37,5 @@ desktop.ini
 
 # Claude
 .claude/
+whatsapp-service/node_modules/
+whatsapp-service/.wwebjs_auth/
