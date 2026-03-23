@@ -58,11 +58,8 @@ async def _voice_broadcast(event_type: str, data: dict):
     """Voice engine icin thread-safe broadcast wrapper.
     Voice engine ayri event loop'ta calisir, bu fonksiyon main loop'a schedule eder."""
     if _main_loop and _main_loop.is_running():
-        future = asyncio.run_coroutine_threadsafe(broadcast_to_all(event_type, data), _main_loop)
-        try:
-            future.result(timeout=5)
-        except Exception as e:
-            log.warning(f"Voice broadcast failed ({event_type}): {e}")
+        # Fire-and-forget — voice loop'u bloklama
+        asyncio.run_coroutine_threadsafe(broadcast_to_all(event_type, data), _main_loop)
 
 
 @app.get("/")

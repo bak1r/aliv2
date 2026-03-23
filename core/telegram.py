@@ -412,16 +412,26 @@ async def send_message(chat_id: int | str, text: str) -> bool:
 
 
 def send_message_sync(chat_id: int | str, text: str) -> bool:
-    """Senkron koddan mesaj gonder."""
+    """Senkron koddan mesaj gonder — herhangi bir thread'den cagirilabilir."""
+    if not _application or not _running:
+        log.warning("[Telegram] Bot calismadigi icin mesaj gonderilemedi.")
+        return False
     try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            future = asyncio.ensure_future(send_message(chat_id, text))
-            return True  # Fire-and-forget
-        else:
-            return loop.run_until_complete(send_message(chat_id, text))
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        result = loop.run_until_complete(send_message(chat_id, text))
-        loop.close()
-        return result
+        import httpx
+        token = get_telegram_token()
+        # Direkt HTTP API cagir — event loop sorunlarini bypass et
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        with httpx.Client(timeout=10) as client:
+            if len(text) > 4000:
+                chunks = [text[i:i + 4000] for i in range(0, len(text), 4000)]
+                for chunk in chunks:
+                    client.post(url, json={"chat_id": chat_id, "text": chunk})
+            else:
+                r = client.post(url, json={"chat_id": chat_id, "text": text})
+                if not r.is_success:
+                    log.error(f"[Telegram] API hatasi: {r.text}")
+                    return False
+        return True
+    except Exception as e:
+        log.error(f"[Telegram] send_message_sync hatasi: {e}")
+        return False
