@@ -344,20 +344,31 @@ def start_telegram_bot(allowed_users: list[int] | None = None):
 
     def _run_bot():
         global _application, _running
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         try:
             _application = _build_application()
             _running = True
-            # stop_signals=None -> sinyal handler kaydetme (thread icinde calistigimiz icin)
-            _application.run_polling(
+            # Manuel polling — run_polling yerine (set_wakeup_fd hatasini onler)
+            loop.run_until_complete(_application.initialize())
+            loop.run_until_complete(_application.start())
+            loop.run_until_complete(_application.updater.start_polling(
                 drop_pending_updates=True,
                 allowed_updates=Update.ALL_TYPES,
-                stop_signals=None,
-            )
+            ))
+            print("[Telegram] Bot baslatildi")
+            loop.run_forever()
         except Exception as e:
             log.error(f"[Telegram] Bot hatasi: {e}")
             print(f"[Telegram] Bot hatasi: {e}")
         finally:
             _running = False
+            try:
+                loop.run_until_complete(_application.updater.stop())
+                loop.run_until_complete(_application.stop())
+                loop.run_until_complete(_application.shutdown())
+            except: pass
+            loop.close()
 
     _thread = threading.Thread(target=_run_bot, daemon=True, name="telegram-bot")
     _thread.start()
