@@ -1,7 +1,7 @@
-"""WhatsApp mesaj gonderme araci — pywhatkit ile WhatsApp Web uzerinden mesaj gonderir.
+"""WhatsApp mesaj gonderme araci — whatsapp-web.js bridge uzerinden.
 
-Birincil yontem: pywhatkit.sendwhatmsg_instantly (telefon numarasi ile)
-Yedek yontem: PyAutoGUI ile WhatsApp Desktop (kisi adi ile, geriye uyumluluk)
+Birincil yontem: whatsapp-web.js HTTP API (localhost:8421)
+Yedek yontem: pywhatkit (tarayici uzerinden)
 """
 
 from __future__ import annotations
@@ -9,14 +9,18 @@ from __future__ import annotations
 import sys
 import time
 import subprocess
+import requests
 from tools.base import BaseTool
+
+_WA_API = "http://127.0.0.1:8421"
 
 
 class WhatsAppTool(BaseTool):
     name = "whatsapp_mesaj"
     description = (
         "WhatsApp uzerinden mesaj gonderir. "
-        "Telefon numarasi (ornek: +905551234567) veya kisi adi belirtin."
+        "Telefon numarasi (ornek: +905551234567) veya kisi adi belirtin. "
+        "WhatsApp bridge aktifse QR ile bagli kalici oturum kullanir."
     )
     parameters = {
         "type": "object",
@@ -27,7 +31,7 @@ class WhatsAppTool(BaseTool):
             },
             "contact": {
                 "type": "string",
-                "description": "Alici kisi veya grup adi (telefon numarasi yoksa PyAutoGUI ile aranir)",
+                "description": "Alici kisi adi (rehberden aranir)",
             },
             "message": {
                 "type": "string",
@@ -37,18 +41,64 @@ class WhatsAppTool(BaseTool):
         "required": ["message"],
     }
 
+    def _bridge_active(self) -> bool:
+        try:
+            r = requests.get(f"{_WA_API}/status", timeout=2)
+            return r.ok and r.json().get("ready", False)
+        except Exception:
+            return False
+
     def run(self, phone_number: str = "", contact: str = "", message: str = "", **kw) -> str:
         if not message:
             return "Mesaj metni belirtilmedi."
         if not phone_number and not contact:
             return "Alici belirtilmedi. phone_number veya contact parametresi gerekli."
 
-        # --- Birincil yontem: pywhatkit ile telefon numarasi uzerinden ---
+        # Birincil: whatsapp-web.js bridge
+        if self._bridge_active():
+            if contact and not phone_number:
+                return self._send_via_bridge_name(contact, message)
+            return self._send_via_bridge(phone_number, message)
+
+        # Yedek: pywhatkit
         if phone_number:
             return self._send_via_pywhatkit(phone_number, message)
 
-        # --- Yedek yontem: PyAutoGUI ile kisi adi uzerinden ---
-        return self._send_via_pyautogui(contact, message)
+        return "WhatsApp bridge bagli degil. Lutfen './run.sh' ile yeniden baslatin ve QR kodu okutun."
+
+    def _send_via_bridge(self, phone_number: str, message: str) -> str:
+        """whatsapp-web.js bridge uzerinden mesaj gonderir."""
+        try:
+            r = requests.post(f"{_WA_API}/send", json={
+                "to": phone_number, "message": message
+            }, timeout=15)
+            if r.ok:
+                return (
+                    f"✅ WhatsApp mesaji gonderildi.\n"
+                    f"Alici: {phone_number}\n"
+                    f"Mesaj: {message[:80]}{'...' if len(message) > 80 else ''}"
+                )
+            return f"WhatsApp hatasi: {r.json().get('error', 'Bilinmeyen hata')}"
+        except Exception as e:
+            return f"WhatsApp bridge hatasi: {e}"
+
+    def _send_via_bridge_name(self, contact: str, message: str) -> str:
+        """whatsapp-web.js bridge uzerinden isimle mesaj gonderir."""
+        try:
+            r = requests.post(f"{_WA_API}/send-by-name", json={
+                "name": contact, "message": message
+            }, timeout=15)
+            if r.ok:
+                data = r.json()
+                return (
+                    f"✅ WhatsApp mesaji gonderildi.\n"
+                    f"Kisi: {data.get('to', contact)}\n"
+                    f"Mesaj: {message[:80]}{'...' if len(message) > 80 else ''}"
+                )
+            err = r.json().get('error', 'Bilinmeyen hata')
+            return f"WhatsApp hatasi: {err}"
+        except Exception as e:
+            return f"WhatsApp bridge hatasi: {e}"
 
     def _send_via_pywhatkit(self, phone_number: str, message: str) -> str:
         """pywhatkit kullanarak WhatsApp Web uzerinden mesaj gonderir."""
