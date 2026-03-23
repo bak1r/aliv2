@@ -318,11 +318,49 @@ class VoiceEngine:
             rate=RECEIVE_SAMPLE_RATE, output=True,
         )
 
-        # Basit selamlaşma kalıpları — sadece bunlar için Gemini kendi cevap verebilir
-        _greetings = ("merhaba", "selam", "günaydın", "iyi akşamlar", "iyi geceler",
-                      "nasılsın", "nasilsin", "naber", "hey", "hoşgeldin", "hosgeldin",
-                      "teşekkür", "tesekkur", "sağol", "sagol", "tamam", "ok", "anladım",
-                      "görüşürüz", "hoşçakal", "hosçakal", "bye", "iyi günler")
+        # Basit selamlaşma/sohbet kalıpları — bunlar için Gemini kendi cevap verebilir
+        # Tool keyword içermediği sürece brain'e gitmesine gerek yok
+        _greetings = (
+            # Selamlaşma
+            "merhaba", "selam", "selamm", "merhabaa", "günaydın", "gunaydin",
+            "iyi akşamlar", "iyi aksamlar", "iyi geceler", "iyi günler", "iyi gunler",
+            "hey", "heyy", "sa", "selamun aleyküm", "selamun aleykum",
+            "hoşgeldin", "hosgeldin", "hoş geldin", "hos geldin",
+            "hayırlı sabahlar", "hayirli sabahlar",
+            # Hal hatır
+            "nasılsın", "nasilsin", "iyi misin", "naber", "n'aber", "nbr",
+            "ne yapıyorsun", "ne yapiyorsun", "ne var ne yok",
+            "nasıl gidiyor", "nasil gidiyor", "keyifler nasıl", "keyifler nasil",
+            # Teşekkür
+            "teşekkürler", "tesekkurler", "teşekkür ederim", "tesekkur ederim",
+            "sağ ol", "sag ol", "saol", "eyvallah", "eyv", "tşk", "tsk",
+            "çok sağ ol", "cok sag ol", "süpersin", "supersin",
+            "harikasın", "harikasin", "mükemmel", "mukemmel", "bravo", "aferin",
+            # Veda
+            "görüşürüz", "gorusuruz", "hoşça kal", "hosca kal",
+            "hoşçakal", "hosçakal", "bay bay", "bye", "bye bye",
+            "güle güle", "gule gule", "kendine iyi bak",
+            # Onay
+            "tamam", "ok", "okay", "anladım", "anladim", "peki", "olur",
+            "evet", "tamamdır", "tamamdir", "oldu", "güzel", "guzel",
+            "harika", "he", "hee", "hı hı",
+            # Küçük sohbet
+            "bugün nasıl gidiyor", "bugun nasil gidiyor",
+            "sıkıldım", "sikildim", "canım sıkılıyor",
+        )
+
+        # Tool keyword'leri — bunlardan biri varsa brain'e yönlendir
+        _tool_keywords = (
+            "ara", "bul", "hesapla", "yaz", "oluştur", "olustur", "ekle",
+            "kaydet", "sil", "not", "hatırlat", "hatirla", "dosya", "belge",
+            "dava", "müvekkil", "muvekkil", "duruşma", "durusma", "tebligat",
+            "vekalet", "masraf", "mevzuat", "yargı", "yargi", "icra", "analiz",
+            "takip", "süre", "sure", "dilekçe", "dilekce", "savunma", "itiraz",
+            "temyiz", "rapor", "whatsapp", "telegram", "hava",
+            "aç", "ac", "kapat", "chrome", "uygulama", "indir",
+            "gönder", "gonder", "listele", "göster", "goster",
+            "kontrol", "hazırla", "hazirla",
+        )
 
         try:
             while self._running:
@@ -365,18 +403,36 @@ class VoiceEngine:
                 await self._broadcast("speaking", {"active": False})
                 await self._broadcast("audio_level", {"level": 0})
 
-                # Gemini text yanıt verdi ama tool çağırmadı → salaklaşmış olabilir
+                # Gemini text yanıt verdi ama tool çağırmadı → kontrol et
                 if self._turn_gemini_text and not self._turn_had_tool_call:
                     gemini_lower = self._turn_gemini_text.strip().lower()
+                    user_lower = self._last_user_text.strip().lower() if self._last_user_text else ""
 
-                    # Selamlaşma mı?
-                    is_greeting = any(g in gemini_lower for g in _greetings) and len(gemini_lower) < 100
+                    # Selamlaşma/sohbet mi?
+                    is_chitchat = any(g in gemini_lower for g in _greetings) and len(gemini_lower) < 100
 
-                    if not is_greeting and self._last_user_text:
+                    # Kullanıcı mesajında tool keyword var mı?
+                    has_tool_keyword = any(kw in user_lower for kw in _tool_keywords) if user_lower else False
+
+                    # "yapamam" gibi reddedici cevap mı?
+                    is_refusal = any(r in gemini_lower for r in (
+                        "yapamam", "yapamıyorum", "yapamiyorum", "yardımcı olamam",
+                        "yardimci olamam", "öyle bir yeteneğim", "oyle bir yetenegim",
+                        "bu konuda", "maalesef",
+                    ))
+
+                    # Tool keyword varsa veya Gemini reddettiyse → brain'e yönlendir
+                    if (has_tool_keyword or is_refusal) and self._last_user_text:
                         log.warning(
                             f"Gemini tool çağırmadan cevap verdi! "
                             f"Gemini: '{self._turn_gemini_text[:80]}' | "
                             f"User: '{self._last_user_text[:80]}' → brain'e yönlendiriliyor"
+                        )
+                        await self._force_brain_redirect(session, self._last_user_text)
+                    elif not is_chitchat and self._last_user_text and len(user_lower) > 20:
+                        # Uzun mesaj ve chitchat değil — güvenli tarafta kal, brain'e gönder
+                        log.warning(
+                            f"Gemini uzun non-chitchat mesaja cevap verdi → brain'e yönlendiriliyor"
                         )
                         await self._force_brain_redirect(session, self._last_user_text)
 

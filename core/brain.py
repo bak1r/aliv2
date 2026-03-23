@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import time
 import re
+import random
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
@@ -57,6 +58,175 @@ _LEGAL_KEYWORDS = re.compile(
     r"hukuk|sanik|mudafi|tutuklama|beraat|iddianame|temyiz|istinaf|haciz|icra|"
     r"avukat|noter|tapu|vekaletname|savcilik|karar|tebligat)\b", re.IGNORECASE
 )
+
+
+# ── Fast-path: aninda yanit (API cagrisi OLMADAN) ────────────────────
+_TOOL_KEYWORDS = frozenset({
+    "ara", "bul", "hesapla", "yaz", "oluştur", "olustur", "ekle", "kaydet",
+    "sil", "not", "hatırlat", "hatırlat", "hatirla", "dosya", "belge", "dava",
+    "müvekkil", "muvekkil", "duruşma", "durusma", "tebligat", "vekalet",
+    "masraf", "mevzuat", "yargı", "yargi", "icra", "analiz", "takip", "süre",
+    "sure", "dilekçe", "dilekce", "savunma", "itiraz", "temyiz", "rapor",
+    "whatsapp", "telegram", "web", "hava", "aç", "ac", "kapat", "chrome",
+    "uygulama", "indir", "gönder", "gonder", "listele", "göster", "goster",
+    "oluştur", "kontrol", "hazırla", "hazirla",
+})
+
+_FAST_RESPONSES = {
+    "greetings": {
+        "patterns": [
+            "selam", "merhaba", "hey", "günaydın", "gunaydin", "iyi akşamlar",
+            "iyi aksamlar", "iyi günler", "iyi gunler", "hoş geldin", "hos geldin",
+            "heyy", "selamm", "merhabaa", "sa", "s.a", "selamun aleyküm",
+            "selamun aleykum", "hayırlı sabahlar", "hayirli sabahlar",
+        ],
+        "responses": [
+            "Selam efendim! Bugün nasıl yardımcı olabilirim? 😊",
+            "Merhaba! Bir emriniz mi var?",
+            "Hoş geldiniz efendim! Ne yapalım bugün?",
+            "Selamlar efendim! Sizi dinliyorum 😊",
+            "Buyurun efendim, hazırım!",
+        ],
+        "responses_named": [
+            "Selam {name}! Bugün nasıl yardımcı olabilirim? 😊",
+            "Merhaba {name}! Bir emriniz mi var?",
+            "Hoş geldiniz {name}! Ne yapalım bugün?",
+            "Selamlar {name}! Sizi dinliyorum 😊",
+            "Buyurun {name}, hazırım!",
+        ],
+    },
+    "how_are_you": {
+        "patterns": [
+            "nasılsın", "nasilsin", "iyi misin", "ne yapıyorsun", "ne yapiyorsun",
+            "naber", "ne var ne yok", "nasıl gidiyor", "nasil gidiyor",
+            "keyifler nasıl", "keyifler nasil", "n'aber", "nbr",
+        ],
+        "responses": [
+            "İyiyim efendim, teşekkür ederim! Siz nasılsınız? 😊",
+            "Harika, her zamanki gibi hazırım! Siz nasılsınız?",
+            "Çok iyiyim efendim! Bir emriniz var mı?",
+            "Gayet iyi, teşekkürler! Bugün ne yapabilirim sizin için?",
+            "Bomba gibi efendim! 💪 Siz nasılsınız?",
+        ],
+    },
+    "thanks": {
+        "patterns": [
+            "teşekkürler", "tesekkurler", "sağ ol", "sag ol", "eyvallah",
+            "çok sağ ol", "cok sag ol", "teşekkür ederim", "tesekkur ederim",
+            "süpersin", "supersin", "harikasın", "harikasin", "çok iyi",
+            "cok iyi", "mükemmel", "mukemmel", "bravo", "aferin",
+            "tşk", "tsk", "saol", "eyv",
+        ],
+        "responses": [
+            "Ne demek efendim, her zaman! 😊",
+            "Rica ederim, başka bir isteğiniz var mı?",
+            "Ne demek, görevimiz! 🙏",
+            "Her zaman efendim! Başka bir şey lazım olursa buradayım.",
+            "Estağfurullah, lafı mı olur! 😊",
+        ],
+    },
+    "goodbye": {
+        "patterns": [
+            "hoşça kal", "hosca kal", "görüşürüz", "gorusuruz", "bay bay",
+            "bye", "bye bye", "güle güle", "gule gule", "kendine iyi bak",
+            "iyi geceler", "iyi aksamlar",
+        ],
+        "responses": [
+            "Görüşürüz efendim! İyi günler dilerim 👋",
+            "Hoşça kalın efendim! Bir şey lazım olursa buradayım.",
+            "İyi günler efendim! Kendinize iyi bakın 😊",
+            "Görüşmek üzere! Her zaman hazırım 👋",
+            "Hoşça kalın! Güzel bir gün geçirin efendim 🌟",
+        ],
+    },
+    "confirmation": {
+        "patterns": [
+            "tamam", "ok", "okay", "anladım", "anladim", "peki", "olur",
+            "evet", "tamamdır", "tamamdir", "kabul", "onay", "oldu",
+            "güzel", "guzel", "harika", "şahane", "sahane", "uygun",
+            "he", "hee", "hı hı", "hıhı",
+        ],
+        "responses": [
+            "Tamam efendim! Başka bir şey var mı? 😊",
+            "Anlaşıldı! Bir isteğiniz olursa buradayım.",
+            "Tamamdır efendim! 👍",
+            "Oldu! Başka bir emriniz?",
+            "Harika, başka bir şey lazım olursa söyleyin 😊",
+        ],
+    },
+    "small_talk": {
+        "patterns": [
+            "bugün nasıl gidiyor", "bugun nasil gidiyor", "bugün nasıl",
+            "bugun nasil", "ne güzel", "ne guzel", "sıkıldım", "sikildim",
+            "canım sıkılıyor", "canim sikiliyor", "çok güzel",
+        ],
+        "responses": [
+            "Güzel gidiyor efendim! Umarım sizin de gününüz güzeldir 😊",
+            "Her zamanki gibi, işimizin başındayız! Siz nasılsınız?",
+            "Gayet güzel efendim! Bir emriniz var mı?",
+            "İyi gidiyor, teşekkürler! Size nasıl yardımcı olabilirim?",
+        ],
+    },
+}
+
+
+def _check_fast_path(message: str, user_name: str = "") -> Optional[str]:
+    """
+    Basit sohbet mesajlarini API cagrisi OLMADAN aninda yanitla.
+    Tool keyword iceriyorsa None dondur (brain'e gitsin).
+    Returns: yanit string veya None (fast-path uygulanmadiysa).
+    """
+    cleaned = message.strip().lower()
+
+    # Turkce karakter normalizasyonu
+    cleaned_normalized = (
+        cleaned.replace("ı", "i").replace("ş", "s").replace("ğ", "g")
+        .replace("ü", "u").replace("ö", "o").replace("ç", "c")
+    )
+
+    # Cok kisa veya cok uzun mesajlar
+    if not cleaned or len(cleaned) > 80:
+        return None
+
+    # Tool keyword kontrolu — herhangi biri varsa fast-path ATLA
+    words = set(re.split(r'\s+', cleaned))
+    if words & _TOOL_KEYWORDS:
+        return None
+
+    # Normalized versiyonda da kontrol
+    words_normalized = set(re.split(r'\s+', cleaned_normalized))
+    normalized_tool = {
+        w.replace("ı", "i").replace("ş", "s").replace("ğ", "g")
+        .replace("ü", "u").replace("ö", "o").replace("ç", "c")
+        for w in _TOOL_KEYWORDS
+    }
+    if words_normalized & normalized_tool:
+        return None
+
+    # Display name (varsa)
+    display_name = ""
+    if user_name:
+        # "Onur" -> "Onur Bey" (eger zaten Bey/Hanim yoksa)
+        display_name = user_name
+        if not any(t in user_name.lower() for t in ("bey", "hanım", "hanim")):
+            display_name = f"{user_name} Bey"
+
+    # Kategorileri kontrol et
+    for category, data in _FAST_RESPONSES.items():
+        for pattern in data["patterns"]:
+            # Tam eslesme veya mesajin icinde pattern var
+            if cleaned == pattern or cleaned_normalized == pattern.replace("ı", "i").replace("ş", "s").replace("ğ", "g").replace("ü", "u").replace("ö", "o").replace("ç", "c"):
+                if display_name and "responses_named" in data:
+                    return random.choice(data["responses_named"]).format(name=display_name)
+                return random.choice(data["responses"])
+
+            # Pattern mesajin icinde (ama mesaj cok uzun degilse)
+            if len(cleaned) < 40 and (pattern in cleaned or pattern.replace("ı", "i").replace("ş", "s").replace("ğ", "g").replace("ü", "u").replace("ö", "o").replace("ç", "c") in cleaned_normalized):
+                if display_name and "responses_named" in data:
+                    return random.choice(data["responses_named"]).format(name=display_name)
+                return random.choice(data["responses"])
+
+    return None
 
 
 # ── Cancel control ───────────────────────────────────────────────────
@@ -258,14 +428,21 @@ def think(
     """
     _reset_cancel()
 
+    # ── Fast-path: basit sohbet mesajlari icin API cagrisi YAPMA ────
+    mem_user = user_name or get_user_name()
+    fast_response = _check_fast_path(user_message, user_name=mem_user)
+    if fast_response:
+        print(f"[Beyin] ⚡ Fast-path: {user_message[:40]} → aninda yanit")
+        _conversation_history.append({"role": "user", "content": user_message})
+        _conversation_history.append({"role": "assistant", "content": fast_response})
+        return fast_response
+
+    # ── Normal path: Claude API ─────────────────────────────────────
     api_key = get_anthropic_key()
     if not api_key:
         return "Anthropic API anahtari ayarlanmamis. Lutfen .env dosyasini kontrol edin."
 
     client = anthropic.Anthropic(api_key=api_key)
-
-    # System prompt — hafiza baglami enjekte et
-    mem_user = user_name or get_user_name()
     system_prompt = build_claude_prompt(user_name=mem_user, case_context=case_context)
 
     memory_ctx = get_memory_context()

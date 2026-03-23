@@ -26,12 +26,21 @@ class AliDB:
     # ── Connection Management ──────────────────────────────────────
 
     def _get_conn(self) -> sqlite3.Connection:
+        # Check if existing connection points to a different DB (e.g. test isolation)
+        if hasattr(_local, "conn") and _local.conn is not None:
+            if getattr(_local, "conn_path", None) != self.db_path:
+                try:
+                    _local.conn.close()
+                except Exception:
+                    pass
+                _local.conn = None
         if not hasattr(_local, "conn") or _local.conn is None:
             conn = sqlite3.connect(self.db_path, check_same_thread=False)
             conn.row_factory = sqlite3.Row
             conn.execute("PRAGMA journal_mode=WAL")
             conn.execute("PRAGMA foreign_keys=ON")
             _local.conn = conn
+            _local.conn_path = self.db_path
         return _local.conn
 
     def _init_db(self):
@@ -531,24 +540,24 @@ class AliDB:
 
     def zaman_raporu(self, dava_id: int | None = None) -> dict:
         conn = self._get_conn()
-        where = "WHERE zk.dava_id=?" if dava_id else ""
+        where = "WHERE zk.dava_id=? AND" if dava_id else "WHERE"
         params = (dava_id,) if dava_id else ()
 
         dava_rows = conn.execute(
             f"SELECT d.dava_no, SUM(zk.sure_dakika) as toplam_dakika, COUNT(*) as kayit "
             f"FROM zaman_kayitlari zk LEFT JOIN davalar d ON zk.dava_id=d.id "
-            f"{where} AND zk.bitis IS NOT NULL GROUP BY zk.dava_id ORDER BY toplam_dakika DESC",
+            f"{where} zk.bitis IS NOT NULL GROUP BY zk.dava_id ORDER BY toplam_dakika DESC",
             params).fetchall()
 
         toplam_row = conn.execute(
             f"SELECT COALESCE(SUM(sure_dakika),0) as toplam, COUNT(*) as adet "
-            f"FROM zaman_kayitlari zk {where} AND zk.bitis IS NOT NULL",
+            f"FROM zaman_kayitlari zk {where} zk.bitis IS NOT NULL",
             params).fetchone()
 
         entries = conn.execute(
             f"SELECT zk.*, d.dava_no FROM zaman_kayitlari zk "
             f"LEFT JOIN davalar d ON zk.dava_id=d.id "
-            f"{where} AND zk.bitis IS NOT NULL ORDER BY zk.baslangic DESC",
+            f"{where} zk.bitis IS NOT NULL ORDER BY zk.baslangic DESC",
             params).fetchall()
 
         return {

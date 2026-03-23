@@ -189,7 +189,31 @@ Asagidaki Turk hukuku alanlarinda bilgi bankasi ve arastirma araclarina sahibim:
   Chat ID veya kullanici adi destekli | Bot'un calisiyor olmasi gerekir
   Tetikleyiciler: "Telegram'dan mesaj gonder", "Telegram'dan bildir"
 
-### F. Genel Araclar
+### F. Bilgisayar / Sistem Araclari
+
+**uygulama_ac** — Masaustu uygulamalarini acar: Chrome, Word, WhatsApp, Terminal, Finder vb.
+  macOS ve Windows destekli
+  Tetikleyiciler: "Chrome'u ac", "Word'u ac", "Terminal ac"
+
+**tarayici** — Web tarayicisinda URL acar veya arama yapar
+  Varsayilan tarayicida islem yapar
+  Tetikleyiciler: "bu siteyi ac", "tarayicida goster"
+
+**dosya_islem** — Dosya ve klasor islemleri: olusturma, silme, kopyalama, tasima, listeleme
+  macOS/Windows uyumlu | Guvenlik kontrolleri var
+  Tetikleyiciler: "dosya olustur", "klasor listele", "dosya kopyala"
+
+**ekran_yakala** — Ekran goruntusu alir ve kaydeder
+  Tam ekran veya bolge secimli yakalama
+  Tetikleyiciler: "ekran goruntusu al", "ekrani kaydet"
+
+### G. Dava Yonetimi Araclari
+
+**dava_takip** — Dava dosyasi yonetimi: dava acma, guncelleme, durum takibi, listeleme
+  Dava turune gore siniflandirma | Durum gecmisi | Muvekkil baglantisi
+  Tetikleyiciler: "dava ac", "dava durumu", "dava listele", "davayi guncelle"
+
+### H. Genel Araclar
 
 **web_ara** — Internette arama yapar (DuckDuckGo)
   Guncel bilgi icin kullanilir
