@@ -206,6 +206,26 @@ def get_app():
                             "type": "transcript", "data": {"role": "system", "text": f"Hata: {e}"}
                         }, ensure_ascii=False))
 
+                elif action == "request_calendar":
+                    try:
+                        from core.database import get_db
+                        db = get_db()
+                        hearings = db.yaklasan_durusmalar(gun=30)
+                        notes = db.not_listele()
+                        await ws.send_text(json.dumps({
+                            "type": "calendar_data",
+                            "data": {
+                                "hearings": hearings,
+                                "notes": [{"id": n.get("id"), "text": n.get("metin", ""), "tag": n.get("etiket", "normal"), "date": n.get("created_at", "")} for n in notes]
+                            }
+                        }, ensure_ascii=False))
+                    except Exception as e:
+                        log.error(f"Calendar data hatasi: {e}")
+                        await ws.send_text(json.dumps({
+                            "type": "calendar_data",
+                            "data": {"hearings": [], "notes": []}
+                        }, ensure_ascii=False))
+
                 elif action == "request_state":
                     registry = get_registry()
                     await ws.send_text(json.dumps({
