@@ -29,29 +29,23 @@ log = logging.getLogger("ali.voice")
 SEND_SAMPLE_RATE = 16000
 RECEIVE_SAMPLE_RATE = 24000
 CHUNK_SIZE = 1024
-BARGE_IN_RMS = 4000
+BARGE_IN_RMS = 2000  # Daha düşük = "dur" deyince hemen sussun
 LIVE_MODEL = "models/gemini-2.5-flash-native-audio-preview-12-2025"
 
-# System prompt for Gemini voice
-VOICE_SYSTEM_PROMPT = """Sen Ali — avukatların sesli AI asistanı.
+# System prompt for Gemini voice — SADECE ses arayüzü, ASLA düşünme
+VOICE_SYSTEM_PROMPT = """Sen SADECE bir ses arayüzüsün. Tek görevin kullanıcının söylediğini dinleyip ali_brain aracına iletmek.
 
-KİŞİLİK:
-- Samimi, zeki, profesyonel. Gerçek bir iş ortağı gibi konuş.
-- Kısa ve öz ama sıcak. Espri: kuru mizah, hafif.
-- Bilmiyorsan uydurma — tool çağır.
-- Türkçe konuş. "Efendim" ile hitap et.
+KESİN KURALLAR:
+1. Kullanıcı ne sorarsa sorsun → ali_brain aracını çağır. İSTİSNASIZ.
+2. ASLA kendi cevabını verme. ASLA "yapamam" deme. ASLA "bu konuda yardımcı olamam" deme.
+3. Tek istisna: "merhaba", "selam", "nasılsın" gibi basit selamlaşmalar → kısa karşılık ver.
+4. Diğer HER ŞEY → ali_brain çağır. Hukuk, bilgi, soru, araştırma, hesaplama, ne olursa olsun.
+5. ali_brain sonucunu kullanıcıya AYNEN aktar. Değiştirme, kısaltma, yorum ekleme.
+6. "Bakıyorum efendim" de ve ali_brain'i çağır.
+7. [SİSTEM] ile başlayan mesajlar dahili bildirimdir — kullanıcıya sesli aktar.
 
-TOOL KULLANIMI:
-- ali_brain → HER TÜRLÜ soru, analiz, hukuki araştırma, belge oluşturma.
-  Basit sohbet hariç her şey için çağır. 5-30sn sürebilir.
-- open_app → uygulama aç
-- open_url → URL aç
-- computer_settings → ses ayarları
-
-KURALLAR:
-- MAX 2 cümle sesli yanıt.
-- Araç kullanıyorsan "bakıyorum" de, sessiz kalma.
-- [SİSTEM] ile başlayan mesajlar dahili — kullanıcıya gösterme.
+SEN DÜŞÜNME. SEN CEVAP VERME. SEN SADECE İLET.
+Türkçe konuş. "Efendim" ile hitap et. MAX 2 cümle kendi sözün (sadece selamlama ve "bakıyorum").
 """
 
 
@@ -71,6 +65,9 @@ class VoiceEngine:
         self._notification_queue: asyncio.Queue = None
         self._recent_notifications: list = []
         self.mic_muted = False
+        self._last_user_text = ""  # Son kullanıcı STT metni — redirect için
+        self._turn_had_tool_call = False  # Turn'de tool çağrıldı mı?
+        self._turn_gemini_text = ""  # Turn'deki Gemini text yanıtı
 
     def set_broadcast(self, broadcast_fn: Callable):
         """Web UI'a event broadcast fonksiyonunu bağla."""
@@ -146,6 +143,15 @@ class VoiceEngine:
                     await self._broadcast("note", {"text": "Ses motoru aktif — konuşabilirsiniz.", "priority": "normal"})
                     await self._broadcast("speaking", {"active": False})
 
+                    # İlk karşılama — Ali kendini tanıtsın
+                    try:
+                        await session.send_client_content(
+                            turns=[{"parts": [{"text": "Kullanıcı az önce bağlandı. Kısa ve sıcak bir şekilde 'Merhaba efendim, Ali hazır, sizi dinliyorum' de."}]}],
+                            turn_complete=True,
+                        )
+                    except Exception as e:
+                        log.warning(f"Karşılama gönderilemedi: {e}")
+
                     tasks = [
                         asyncio.create_task(self._listen_mic(session)),
                         asyncio.create_task(self._receive_audio(session)),
@@ -156,9 +162,23 @@ class VoiceEngine:
                     await asyncio.gather(*tasks)
 
             except Exception as e:
-                log.error(f"Ses bağlantı hatası: {e}")
-                await self._broadcast("note", {"text": f"Ses koptu: {e}", "priority": "urgent"})
-                await asyncio.sleep(2)
+                err_str = str(e)
+                log.error(f"Ses bağlantı hatası: {err_str}")
+
+                # 1008 = policy error — model doesn't support Live API or API key lacks Live API access
+                if "1008" in err_str:
+                    log.error("1008 hatası: API anahtarı Live API erişimine sahip değil veya model desteklenmiyor. Tekrar denenmeyecek.")
+                    await self._broadcast("note", {
+                        "text": "Sesli asistan şu an kullanılamıyor. API anahtarınız Live API erişimine sahip olmayabilir. Yazarak devam edebilirsiniz. ⚠️",
+                        "priority": "urgent"
+                    })
+                    await self._broadcast("daemon_status", {"voice": "down"})
+                    # Don't retry — 1008 is a policy/access error, not a transient issue
+                    self._running = False
+                    break
+                else:
+                    await self._broadcast("note", {"text": f"Ses koptu, yeniden bağlanılıyor...", "priority": "urgent"})
+                    await asyncio.sleep(3)
 
     def _build_tools(self) -> list:
         """Gemini tool tanımları."""
@@ -166,10 +186,10 @@ class VoiceEngine:
             {
                 "name": "ali_brain",
                 "description": (
-                    "Ali beyni — HER TÜRLÜ düşünme gerektiren iş için çağır. "
-                    "Hukuki araştırma, mevzuat arama, belge oluşturma, ceza hesaplama, "
-                    "web araması, dosya işlemleri, bilgi sorgulama. "
-                    "Basit sohbet (selam, teşekkür) HARİÇ her şey için çağır."
+                    "ZORUNLU — Kullanıcının HER mesajı için bu aracı çağır. "
+                    "Selamlama hariç ASLA kendi cevabını verme, her zaman bu aracı çağır. "
+                    "Hukuk, bilgi, soru, hesaplama, araştırma, ne olursa olsun bu araç HER ŞEYİ yapabilir. "
+                    "Sen cevap veremezsin ama bu araç verebilir. ASLA 'yapamam' deme, bu aracı çağır."
                 ),
                 "parameters": {
                     "type": "OBJECT",
@@ -229,6 +249,12 @@ class VoiceEngine:
             return
 
         pya = pyaudio.PyAudio()
+
+        # BUG 4 FIX: Log available audio devices for debugging
+        dev_count = pya.get_device_count()
+        default_input = pya.get_default_input_device_info()
+        log.info(f"PyAudio: {dev_count} cihaz bulundu. Varsayilan mikrofon: {default_input.get('name', '?')} (index={default_input.get('index', -1)}, channels={default_input.get('maxInputChannels', 0)})")
+
         stream = pya.open(
             format=pyaudio.paInt16, channels=1,
             rate=SEND_SAMPLE_RATE, input=True,
@@ -237,6 +263,7 @@ class VoiceEngine:
 
         loop = asyncio.get_event_loop()
         silence = b"\x00" * CHUNK_SIZE * 2
+        _rms_log_counter = 0  # BUG 4: periodic RMS logging
 
         try:
             while self._running:
@@ -263,12 +290,15 @@ class VoiceEngine:
                 # Audio level meter
                 if not self.mic_muted and not self._is_speaking:
                     rms = self._calc_rms(data)
+                    # BUG 4 FIX: Log RMS every ~2 seconds so we can debug "dur" not being heard
+                    _rms_log_counter += 1
+                    if _rms_log_counter % 32 == 0:  # ~2s at 16kHz/1024 chunks
+                        log.debug(f"Mic RMS: {rms:.0f} (barge_in_threshold={BARGE_IN_RMS})")
                     if rms > 200:
                         await self._broadcast("audio_level", {"level": min(1.0, rms / 8000)})
 
-                await session.send(
-                    input={"data": base64.b64encode(data).decode(), "mime_type": "audio/pcm"},
-                    end_of_turn=False,
+                await session.send_realtime_input(
+                    media={"data": base64.b64encode(data).decode(), "mime_type": "audio/pcm"},
                 )
         finally:
             stream.stop_stream()
@@ -288,8 +318,18 @@ class VoiceEngine:
             rate=RECEIVE_SAMPLE_RATE, output=True,
         )
 
+        # Basit selamlaşma kalıpları — sadece bunlar için Gemini kendi cevap verebilir
+        _greetings = ("merhaba", "selam", "günaydın", "iyi akşamlar", "iyi geceler",
+                      "nasılsın", "nasilsin", "naber", "hey", "hoşgeldin", "hosgeldin",
+                      "teşekkür", "tesekkur", "sağol", "sagol", "tamam", "ok", "anladım",
+                      "görüşürüz", "hoşçakal", "hosçakal", "bye", "iyi günler")
+
         try:
             while self._running:
+                # Turn başında sıfırla
+                self._turn_had_tool_call = False
+                self._turn_gemini_text = ""
+
                 turn = session.receive()
                 async for response in turn:
                     # Ses verisi
@@ -298,19 +338,50 @@ class VoiceEngine:
                         await self._broadcast("speaking", {"active": True})
                         out_stream.write(response.data)
 
-                    # Transcript (STT)
+                    # Gemini model text yanıtı — topla
+                    if hasattr(response, "server_content") and response.server_content:
+                        sc = response.server_content
+                        if hasattr(sc, "model_turn") and sc.model_turn:
+                            for part in (sc.model_turn.parts or []):
+                                if hasattr(part, "text") and part.text:
+                                    self._turn_gemini_text += part.text
+
+                    # Transcript (STT) — kullanıcı konuşması
                     if hasattr(response, "text") and response.text:
-                        await self._broadcast("transcript", {
-                            "role": "user", "text": response.text
-                        })
+                        txt = response.text.strip()
+                        if txt:
+                            self._last_user_text = txt
+                            await self._broadcast("transcript", {
+                                "role": "user", "text": txt
+                            })
 
                     # Tool çağrısı
                     if hasattr(response, "tool_call") and response.tool_call:
+                        self._turn_had_tool_call = True
                         await self._handle_tool_call(session, response.tool_call)
 
+                # ── Turn bitti — Gemini salaklaştı mı kontrol ──
                 self._is_speaking = False
                 await self._broadcast("speaking", {"active": False})
                 await self._broadcast("audio_level", {"level": 0})
+
+                # Gemini text yanıt verdi ama tool çağırmadı → salaklaşmış olabilir
+                if self._turn_gemini_text and not self._turn_had_tool_call:
+                    gemini_lower = self._turn_gemini_text.strip().lower()
+
+                    # Selamlaşma mı?
+                    is_greeting = any(g in gemini_lower for g in _greetings) and len(gemini_lower) < 100
+
+                    if not is_greeting and self._last_user_text:
+                        log.warning(
+                            f"Gemini tool çağırmadan cevap verdi! "
+                            f"Gemini: '{self._turn_gemini_text[:80]}' | "
+                            f"User: '{self._last_user_text[:80]}' → brain'e yönlendiriliyor"
+                        )
+                        await self._force_brain_redirect(session, self._last_user_text)
+
+                # Kullanıcı bir şey söyledi, Gemini hiçbir şey yapmadı (sessiz kaldı)
+                # Bu da tool çağırmaması durumuna girer ama text de yoksa sorun yok
         finally:
             out_stream.stop_stream()
             out_stream.close()
@@ -369,17 +440,56 @@ class VoiceEngine:
             await self._broadcast("tool_state", {"name": fc.name, "state": "done"})
 
             # Sonucu Gemini'ye gönder
-            await session.send(
-                input=types.LiveClientToolResponse(
-                    function_responses=[
-                        types.FunctionResponse(
-                            name=fc.name,
-                            response={"result": result[:3000]},
-                        )
-                    ]
-                ),
-                end_of_turn=True,
+            await session.send_tool_response(
+                function_responses=[
+                    types.FunctionResponse(
+                        name=fc.name,
+                        response={"result": result[:3000]},
+                    )
+                ],
             )
+
+    async def _force_brain_redirect(self, session, user_text: str):
+        """Gemini tool çağırmadığında direkt brain'i çağır ve sonucu Gemini'ye TTS için gönder."""
+        if not self.brain_fn:
+            log.error("Brain redirect: brain_fn bağlı değil!")
+            return
+
+        try:
+            log.info(f"Brain redirect: '{user_text[:80]}' direkt brain'e gönderiliyor")
+            loop = asyncio.get_event_loop()
+            await self._broadcast("thinking", {"active": True, "text": user_text})
+
+            result = await loop.run_in_executor(
+                None, lambda: self.brain_fn(user_message=user_text)
+            )
+
+            await self._broadcast("thinking", {"active": False})
+            await self._broadcast("transcript", {
+                "role": "ai", "text": result[:500],
+                "model": "sonnet", "domain": "hukuk"
+            })
+
+            # Sonucu Gemini'ye gönder — sadece TTS olarak okuması için
+            await session.send_client_content(
+                turns=[{"parts": [{"text": (
+                    f"Kullanıcıya şunu AYNEN sesli olarak söyle, hiçbir şey değiştirme, "
+                    f"ekleme veya çıkarma: {result[:1500]}"
+                )}]}],
+                turn_complete=True,
+            )
+            log.info("Brain redirect: sonuç Gemini'ye TTS için gönderildi")
+
+        except Exception as e:
+            log.error(f"Brain redirect hatası: {e}")
+            # Hata durumunda en azından kullanıcıya bilgi ver
+            try:
+                await session.send_client_content(
+                    turns=[{"parts": [{"text": "Kullanıcıya 'Bir sorun oluştu, lütfen tekrar deneyin' de."}]}],
+                    turn_complete=True,
+                )
+            except Exception:
+                pass
 
     async def _notification_listener(self):
         """Proaktif bildirim dinleyici."""
@@ -403,7 +513,7 @@ class VoiceEngine:
                         f"Bu bildirimi kısa ve net şekilde sesli olarak ilet."
                     )
                     await self._session.send_client_content(
-                        turns={"parts": [{"text": inject}]},
+                        turns=[{"parts": [{"text": inject}]}],
                         turn_complete=True,
                     )
             except asyncio.TimeoutError:
@@ -419,9 +529,8 @@ class VoiceEngine:
         while self._running:
             await asyncio.sleep(60)
             try:
-                await session.send(
-                    input={"data": base64.b64encode(silence).decode(), "mime_type": "audio/pcm"},
-                    end_of_turn=False,
+                await session.send_realtime_input(
+                    media={"data": base64.b64encode(silence).decode(), "mime_type": "audio/pcm"},
                 )
             except Exception:
                 break

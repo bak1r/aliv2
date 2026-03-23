@@ -118,6 +118,49 @@ async def ws_endpoint(ws: WebSocket):
         "telegram": "ok" if tg_active else "down",
     }}, ensure_ascii=False))
 
+    # BUG 5 FIX: MCP health check — ping endpoints and update UI
+    async def _check_mcp():
+        import httpx
+        mcp_cfg = SETTINGS.get("mcp", {})
+        mevzuat_url = mcp_cfg.get("mevzuat_endpoint", "https://mevzuat.surucu.dev/mcp")
+        yargi_url = mcp_cfg.get("yargi_endpoint", "https://yargimcp.fastmcp.app/mcp")
+        mevzuat_ok = False
+        yargi_ok = False
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                try:
+                    r = await client.get(mevzuat_url.replace("/mcp", "/health") if "/mcp" in mevzuat_url else mevzuat_url)
+                    mevzuat_ok = r.status_code < 500
+                except Exception:
+                    try:
+                        r = await client.get(mevzuat_url)
+                        mevzuat_ok = r.status_code < 500
+                    except Exception:
+                        pass
+                try:
+                    r = await client.get(yargi_url.replace("/mcp", "/health") if "/mcp" in yargi_url else yargi_url)
+                    yargi_ok = r.status_code < 500
+                except Exception:
+                    try:
+                        r = await client.get(yargi_url)
+                        yargi_ok = r.status_code < 500
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+        # Send MCP status to UI — hDb = Mevzuat MCP, hTg = Yargi MCP in the health widget
+        await ws.send_text(json.dumps({"type": "daemon_status", "data": {
+            "database": "ok" if mevzuat_ok else "down",
+        }}, ensure_ascii=False))
+        # For Yargi MCP we update via env_status since hTg is used for Telegram daemon
+        # Use a separate mcp_status event
+        await ws.send_text(json.dumps({"type": "mcp_status", "data": {
+            "mevzuat": "ok" if mevzuat_ok else "down",
+            "yargi": "ok" if yargi_ok else "down",
+        }}, ensure_ascii=False))
+
+    asyncio.ensure_future(_check_mcp())
+
     # ── Message loop ──────────────────────────────────────────────
     try:
         while True:
@@ -131,15 +174,51 @@ async def ws_endpoint(ws: WebSocket):
 
             action = msg.get("action", "message")
 
+            if action == "cancel" or (action == "message" and msg.get("text", "").strip().lower() in ("dur", "iptal", "kes", "sus")):
+                from core.brain import request_cancel
+                request_cancel()
+                await ws.send_text(json.dumps({"type": "thinking", "data": {"active": False}}, ensure_ascii=False))
+                await ws.send_text(json.dumps({"type": "transcript", "data": {
+                    "role": "ai", "text": "Durdurdum efendim. Başka bir şey var mı?"
+                }}, ensure_ascii=False))
+                continue
+
             if action == "message":
                 text = msg.get("text", "").strip()
                 if not text:
                     continue
 
-                # User mesaji
-                await ws.send_text(json.dumps({"type": "transcript", "data": {
-                    "role": "user", "text": text
-                }}, ensure_ascii=False))
+                # BUG 2 FIX: User mesajini geri gonderme — client sendMessage() zaten gosteriyor
+                # Sadece sesli giris icin voice engine kendi transcript'ini gonderir
+
+                # BUG 1 FIX: Fast-path for simple greetings — Claude API cagirmadan aninda yanit
+                _fast = text.lower().strip()
+                if _fast in ("selam", "merhaba", "hey", "naber", "nasilsin", "iyi gunler",
+                             "iyi aksamlar", "gunaydin", "hosca kal", "gorusuruz",
+                             "sagol", "tesekkurler", "tesekkur ederim", "eyvallah"):
+                    _greetings = {
+                        "selam": "Selam efendim, buyurun!",
+                        "merhaba": "Merhaba efendim, nasil yardimci olabilirim?",
+                        "hey": "Buyurun efendim!",
+                        "naber": "Iyiyim efendim, siz nasilsiniz? Buyurun.",
+                        "nasilsin": "Iyiyim efendim, tesekkurler. Sizin icin ne yapabilirim?",
+                        "iyi gunler": "Size de iyi gunler efendim!",
+                        "iyi aksamlar": "Iyi aksamlar efendim!",
+                        "gunaydin": "Gunaydin efendim! Bugun ne yapalim?",
+                        "hosca kal": "Hosca kalin efendim, iyi gunler!",
+                        "gorusuruz": "Gorusuruz efendim, iyi gunler!",
+                        "sagol": "Rica ederim efendim!",
+                        "tesekkurler": "Rica ederim efendim, baska bir sey var mi?",
+                        "tesekkur ederim": "Rica ederim efendim!",
+                        "eyvallah": "Ne demek efendim!",
+                    }
+                    reply = _greetings.get(_fast, "Buyurun efendim!")
+                    await ws.send_text(json.dumps({"type": "transcript", "data": {
+                        "role": "ai", "text": reply, "model": "fast-path",
+                        "domain": "genel", "tokens": 0, "latency_ms": 1,
+                        "tools_used": [],
+                    }}, ensure_ascii=False))
+                    continue
 
                 # Thinking basladi
                 await ws.send_text(json.dumps({"type": "thinking", "data": {
@@ -170,6 +249,12 @@ async def ws_endpoint(ws: WebSocket):
                         )
                         # not_al araci kullanildiysa UI'a note event'i gonder
                         if name == "not_al" and result_preview:
+                            # BUG 6 FIX: Silme islemi ise notes panelini temizle
+                            if "silindi" in result_preview.lower() or "temizlendi" in result_preview.lower():
+                                asyncio.run_coroutine_threadsafe(
+                                    broadcast_to_all("notes_clear", {}),
+                                    loop
+                                )
                             asyncio.run_coroutine_threadsafe(
                                 broadcast_to_all("note", {
                                     "text": result_preview,
@@ -258,7 +343,26 @@ def _start_voice_engine():
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    loop.run_until_complete(_voice_engine.start())
+    try:
+        loop.run_until_complete(_voice_engine.start())
+    except Exception as e:
+        log.error(f"Ses motoru hatasi: {e}")
+        # Broadcast voice down status to UI
+        try:
+            loop.run_until_complete(broadcast_to_all("daemon_status", {"voice": "down"}))
+            error_msg = str(e)
+            if "1008" in error_msg:
+                loop.run_until_complete(broadcast_to_all("note", {
+                    "text": "Sesli asistan kullanilamiyor (1008). Yazarak devam edebilirsiniz.",
+                    "priority": "urgent"
+                }))
+        except Exception:
+            pass
+    finally:
+        try:
+            loop.close()
+        except Exception:
+            pass
 
 
 def main():
@@ -284,6 +388,25 @@ def main():
     print(f"  [Araclar]  {len(registry)} adet")
 
     port = SETTINGS.get("web_ui_port", 8420)
+
+    # Port meşgulse önceki processi kapat
+    import socket
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(1)
+        result = s.connect_ex(("127.0.0.1", port))
+        s.close()
+        if result == 0:
+            log.info(f"Port {port} mesgul, onceki process kapatiliyor...")
+            import subprocess
+            if sys.platform == "darwin" or sys.platform == "linux":
+                subprocess.run(f"lsof -ti:{port} | xargs kill -9", shell=True, capture_output=True)
+            elif sys.platform == "win32":
+                subprocess.run(f"for /f \"tokens=5\" %a in ('netstat -aon ^| findstr :{port}') do taskkill /PID %a /F", shell=True, capture_output=True)
+            import time as _time
+            _time.sleep(1)
+    except Exception:
+        pass
 
     # Telegram bot (varsa)
     if telegram_ok:
