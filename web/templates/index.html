@@ -256,8 +256,8 @@ header{
 
 /* ═══════════════════ THINKING OVERLAY ═══════════════════ */
 #thinkSec{
-  position:fixed;top:64px;left:50%;transform:translateX(-50%);
-  width:380px;max-width:90vw;z-index:110;
+  position:fixed;top:64px;right:14px;
+  width:280px;max-width:90vw;z-index:200;
   background:var(--panel);border:1px solid rgba(245,158,11,0.15);
   border-radius:var(--radius);backdrop-filter:var(--glass);
   padding:12px 16px;
@@ -915,14 +915,15 @@ footer{
     </div>
   </div>
 
+  <!-- Thinking Process (fixed overlay — panel-r DISINDA) -->
+  <div id="thinkSec" style="display:none">
+    <div class="r-title" style="color:var(--amber)">&#129504; D&#220;&#350;&#220;NME S&#220;REC&#304;</div>
+    <div id="thinkSteps"></div>
+    <div class="think-timer" id="thinkTimer"></div>
+  </div>
+
   <!-- RIGHT (drawer) -->
   <div class="panel-r">
-    <!-- Thinking Process (floating overlay) -->
-    <div class="r-sec" id="thinkSec" style="display:none">
-      <div class="r-title" style="color:var(--amber)">&#129504; D&#220;&#350;&#220;NME S&#220;REC&#304;</div>
-      <div id="thinkSteps"></div>
-      <div class="think-timer" id="thinkTimer"></div>
-    </div>
     <!-- Notes -->
     <div class="r-sec">
       <div class="r-title" style="color:var(--cyan)">NOTLAR <button class="r-btn" onclick="$('notes').innerHTML=''" title="T&uuml;m notlar&305; temizle">TEMİZLE</button></div>
