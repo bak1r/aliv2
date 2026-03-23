@@ -22,6 +22,12 @@ import uvicorn
 
 app = FastAPI(title="Ali v2 — Avukat AI")
 
+
+@app.on_event("startup")
+async def _capture_main_loop():
+    global _main_loop
+    _main_loop = asyncio.get_running_loop()
+
 TEMPLATES = BASE_DIR / "web" / "templates"
 
 # WebSocket clients
@@ -29,6 +35,9 @@ _ws_clients: set = set()
 
 # Voice engine global ref
 _voice_engine = None
+
+# Main event loop reference (for cross-thread broadcast from voice engine)
+_main_loop: asyncio.AbstractEventLoop = None
 
 
 async def broadcast_to_all(event_type: str, data: dict):
@@ -43,6 +52,15 @@ async def broadcast_to_all(event_type: str, data: dict):
         except Exception:
             dead.add(ws)
     _ws_clients.difference_update(dead)
+
+
+async def _voice_broadcast(event_type: str, data: dict):
+    """Voice engine icin thread-safe broadcast wrapper.
+    Voice engine ayri event loop'ta calisir, bu fonksiyon main loop'a schedule eder."""
+    if _main_loop and _main_loop.is_running():
+        asyncio.run_coroutine_threadsafe(broadcast_to_all(event_type, data), _main_loop)
+    else:
+        await broadcast_to_all(event_type, data)
 
 
 @app.get("/")
@@ -339,7 +357,7 @@ def _start_voice_engine():
     from core.brain import think
 
     _voice_engine = VoiceEngine(brain_fn=think)
-    _voice_engine.set_broadcast(broadcast_to_all)
+    _voice_engine.set_broadcast(_voice_broadcast)
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)

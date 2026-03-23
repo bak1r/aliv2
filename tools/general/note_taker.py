@@ -32,8 +32,8 @@ class NoteTool(BaseTool):
         "properties": {
             "action": {
                 "type": "string",
-                "enum": ["add", "list", "search", "delete"],
-                "description": "Yapilacak islem: add (ekle), list (listele), search (ara), delete (sil)",
+                "enum": ["add", "list", "search", "delete", "clear"],
+                "description": "Yapilacak islem: add (ekle), list (listele), search (ara), delete (sil), clear (tumu sil)",
             },
             "text": {
                 "type": "string",
@@ -57,8 +57,10 @@ class NoteTool(BaseTool):
             return self._search(text)
         elif action == "delete":
             return self._delete(text)
+        elif action == "clear":
+            return self._clear()
         else:
-            return f"Bilinmeyen islem: {action}. Gecerli islemler: add, list, search, delete"
+            return f"Bilinmeyen islem: {action}. Gecerli islemler: add, list, search, delete, clear"
 
     def _add(self, text: str, tag: str) -> str:
         if not text:
@@ -117,3 +119,12 @@ class NoteTool(BaseTool):
         db.not_sil(target["id"])
 
         return f"Not #{idx} silindi: {target.get('metin', '')}"
+
+    def _clear(self) -> str:
+        db = get_db()
+        notes = db.not_listele()
+        if not notes:
+            return "Zaten hic not yok."
+        count = len(notes)
+        db.notlari_temizle()
+        return f"Tum notlar temizlendi ({count} not silindi)."

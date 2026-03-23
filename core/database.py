@@ -621,6 +621,13 @@ class AliDB:
         conn.commit()
         return cur.rowcount > 0
 
+    def notlari_temizle(self) -> int:
+        """Tum notlari sil, silinen kayit sayisini dondur."""
+        conn = self._get_conn()
+        cur = conn.execute("DELETE FROM notlar")
+        conn.commit()
+        return cur.rowcount
+
     # ── Hazırılk Maddeleri ─────────────────────────────────────────
 
     def hazirlik_ekle(self, dava_id: int | None, durusma_id: int | None,

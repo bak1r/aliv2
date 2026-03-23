@@ -133,12 +133,16 @@ class VoiceEngine:
         log.info(f"Gemini'ye bağlanılıyor... ({LIVE_MODEL})")
         await self._broadcast("daemon_status", {"voice": "ok"})
 
+        _reconnect_attempts = 0
+        _max_reconnect = 5
+
         while self._running:
             try:
                 async with client.aio.live.connect(
                     model=LIVE_MODEL, config=config
                 ) as session:
                     self._session = session
+                    _reconnect_attempts = 0  # Basarili baglanti — sayaci sifirla
                     log.info("Ses bağlantısı kuruldu")
                     await self._broadcast("note", {"text": "Ses motoru aktif — konuşabilirsiniz.", "priority": "normal"})
                     await self._broadcast("speaking", {"active": False})
@@ -169,16 +173,27 @@ class VoiceEngine:
                 if "1008" in err_str:
                     log.error("1008 hatası: API anahtarı Live API erişimine sahip değil veya model desteklenmiyor. Tekrar denenmeyecek.")
                     await self._broadcast("note", {
-                        "text": "Sesli asistan şu an kullanılamıyor. API anahtarınız Live API erişimine sahip olmayabilir. Yazarak devam edebilirsiniz. ⚠️",
+                        "text": "Sesli asistan kullanılamıyor. API anahtarınız Live API erişimine sahip olmayabilir. Yazarak devam edebilirsiniz.",
                         "priority": "urgent"
                     })
                     await self._broadcast("daemon_status", {"voice": "down"})
-                    # Don't retry — 1008 is a policy/access error, not a transient issue
                     self._running = False
                     break
-                else:
-                    await self._broadcast("note", {"text": f"Ses koptu, yeniden bağlanılıyor...", "priority": "urgent"})
-                    await asyncio.sleep(3)
+
+                _reconnect_attempts += 1
+                if _reconnect_attempts >= _max_reconnect:
+                    log.error(f"Ses motoru {_max_reconnect} deneme sonrasi baglanamiyor. Durduruluyor.")
+                    await self._broadcast("note", {
+                        "text": "Sesli asistan kullanılamıyor, yazarak devam edin.",
+                        "priority": "urgent"
+                    })
+                    await self._broadcast("daemon_status", {"voice": "down"})
+                    self._running = False
+                    break
+
+                # Sessizce yeniden baglan — sadece log'a yaz, UI'a bildirim gonderme
+                log.warning(f"Ses koptu, yeniden bağlanılıyor... (deneme {_reconnect_attempts}/{_max_reconnect})")
+                await asyncio.sleep(2)
 
     def _build_tools(self) -> list:
         """Gemini tool tanımları."""
@@ -456,7 +471,6 @@ class VoiceEngine:
             if fc.name == "ali_brain":
                 request = fc.args.get("user_request", "")
                 await self._broadcast("thinking", {"active": True, "text": request})
-                await self._broadcast("transcript", {"role": "user", "text": request})
 
                 if self.brain_fn:
                     loop = asyncio.get_event_loop()
@@ -580,10 +594,10 @@ class VoiceEngine:
                 log.warning(f"Bildirim hatası: {e}")
 
     async def _keepalive(self, session):
-        """Bağlantı canlı tutma."""
+        """Bağlantı canlı tutma — 30s aralıkla sessizlik gönder."""
         silence = b"\x00" * 320
         while self._running:
-            await asyncio.sleep(60)
+            await asyncio.sleep(30)
             try:
                 await session.send_realtime_input(
                     media={"data": base64.b64encode(silence).decode(), "mime_type": "audio/pcm"},
