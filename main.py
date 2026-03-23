@@ -160,7 +160,8 @@ async def ws_endpoint(ws: WebSocket):
                 except Exception:
                     try:
                         r = await client.get(yargi_url)
-                        yargi_ok = r.status_code < 500
+                        # 405 = servis var, GET desteklemiyor ama çalışıyor
+                        yargi_ok = r.status_code in (200, 405)
                     except Exception:
                         pass
         except Exception:
