@@ -145,17 +145,32 @@ echo.
 echo   ══════════════════════════════════════════
 echo.
 
+:: 9. Masaustune tek tikla baslat kisayolu
+if not exist "%USERPROFILE%\Desktop\ALI Baslat.bat" (
+    (
+        echo @echo off
+        echo chcp 65001 ^>nul 2^>^&1
+        echo title ALI v2
+        echo cd /d "%~dp0"
+        echo set ALI_ELECTRON=1
+        echo .venv\Scripts\python main.py
+        echo pause
+    ) > "%USERPROFILE%\Desktop\ALI Baslat.bat"
+    echo   ✅ Masaustune 'ALI Baslat.bat' olusturuldu
+)
+
 set /p start_now="  Ali'yi simdi baslatmak ister misiniz? (E/h): "
 if /i "%start_now%"=="h" goto :end
 
 echo.
 echo   🚀 Ali baslatiliyor...
 echo.
+set ALI_ELECTRON=1
 .venv\Scripts\python main.py
 goto :eof
 
 :end
 echo.
-echo   Daha sonra baslatmak icin bu dosyaya tekrar cift tiklayin
+echo   Daha sonra baslatmak icin masaustundeki 'ALI Baslat.bat' dosyasina cift tiklayin
 echo.
 pause
