@@ -427,9 +427,9 @@ def main():
         voice_thread.start()
         print(f"  [Ses]      Motor baslatildi")
 
-    # Electron'dan açılmışsa tarayıcıyı açma
-    if not os.environ.get("ALI_ELECTRON"):
-        threading.Timer(1.5, lambda: webbrowser.open(f"http://127.0.0.1:{port}")).start()
+    # Tarayıcı otomatik açılmasın — kullanıcı Electron app veya kendi tarayıcısını kullanır
+    # if not os.environ.get("ALI_ELECTRON"):
+    #     threading.Timer(1.5, lambda: webbrowser.open(f"http://127.0.0.1:{port}")).start()
 
     print(f"\n{'='*55}")
     print(f"  Web UI: http://127.0.0.1:{port}")

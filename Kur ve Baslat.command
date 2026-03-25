@@ -173,17 +173,32 @@ echo ""
 echo "  ═══════════════════════════════════════════"
 echo ""
 
+# ── 10. Masaustune tek tikla baslat kisayolu ──
+DESKTOP="$HOME/Desktop"
+LAUNCHER="$DESKTOP/ALI Baslat.command"
+if [ ! -f "$LAUNCHER" ]; then
+    cat > "$LAUNCHER" << 'LAUNCHER_EOF'
+#!/bin/bash
+cd "$(dirname "$(readlink -f "$0" 2>/dev/null || echo "$0")")"
+cd ~/Desktop/UnlimitedClaude 2>/dev/null || cd "$(find ~/Desktop -name "main.py" -path "*/UnlimitedClaude/*" -exec dirname {} \; 2>/dev/null | head -1)"
+export ALI_ELECTRON=1
+.venv/bin/python3 main.py
+LAUNCHER_EOF
+    chmod +x "$LAUNCHER"
+    echo "  ✅ Masaustune 'ALI Baslat.command' olusturuldu"
+fi
+
 read -p "  Ali'yi simdi baslatmak ister misiniz? (E/h): " start_now
 
 if [ "$start_now" != "h" ] && [ "$start_now" != "H" ]; then
     echo ""
     echo "  🚀 Ali baslatiliyor..."
     echo ""
+    export ALI_ELECTRON=1
     .venv/bin/python3 main.py
 else
     echo ""
-    echo "  Daha sonra baslatmak icin bu dosyaya tekrar cift tiklayin"
-    echo "  veya Terminal'de: ./run.sh"
+    echo "  Daha sonra baslatmak icin masaustundeki 'ALI Baslat.command' dosyasina cift tiklayin"
     echo ""
     read -p "  Kapatmak icin Enter'a basin..."
 fi
