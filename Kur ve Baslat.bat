@@ -91,12 +91,36 @@ if not exist ".env" (
     set /p gemini_key="  Google Gemini API Key: "
     set /p anthropic_key="  Anthropic API Key: "
     echo.
-    set /p telegram_token="  Telegram Bot Token (opsiyonel): "
+
+    echo   -- Telegram (opsiyonel -- bos birakilabilir) --
+    echo.
+    set /p telegram_token="  Telegram Bot Token: "
+    echo.
+
+    set telegram_api_id=
+    set telegram_api_hash=
+    if not "%telegram_token%"=="" (
+        echo   Telegram mention takibi icin API bilgileri gerekli.
+        echo   https://my.telegram.org adresinden alinabilir.
+        echo   (Bos birakirsaniz sadece bot calisir^)
+        echo.
+        set /p telegram_api_id="  Telegram API ID (opsiyonel): "
+        set /p telegram_api_hash="  Telegram API Hash (opsiyonel): "
+        echo.
+    )
+
+    echo   -- WhatsApp (opsiyonel) --
+    echo.
+    echo   WhatsApp entegrasyonu icin uygulama basladiktan sonra
+    echo   Web UI'da WhatsApp QR kodu taratmaniz gerekecek.
+    echo.
 
     (
         echo GOOGLE_API_KEY="%gemini_key%"
         echo ANTHROPIC_API_KEY="%anthropic_key%"
         if not "%telegram_token%"=="" echo TELEGRAM_BOT_TOKEN="%telegram_token%"
+        if not "%telegram_api_id%"=="" echo TELEGRAM_API_ID="%telegram_api_id%"
+        if not "%telegram_api_hash%"=="" echo TELEGRAM_API_HASH="%telegram_api_hash%"
     ) > .env
 
     echo   ✅ API anahtarlari kaydedildi

@@ -109,13 +109,35 @@ if [ ! -f ".env" ]; then
     read -p "  Anthropic API Key: " anthropic_key
     echo ""
 
-    read -p "  Telegram Bot Token (opsiyonel, bos birakilabilir): " telegram_token
+    echo "  ── Telegram (opsiyonel — bos birakilabilir) ──"
+    echo ""
+    read -p "  Telegram Bot Token: " telegram_token
+    echo ""
+
+    telegram_api_id=""
+    telegram_api_hash=""
+    if [ -n "$telegram_token" ]; then
+        echo "  Telegram mention takibi icin API bilgileri gerekli."
+        echo "  https://my.telegram.org adresinden alinabilir."
+        echo "  (Bos birakirsaniz sadece bot calısır, mention takibi kapali kalir)"
+        echo ""
+        read -p "  Telegram API ID (opsiyonel): " telegram_api_id
+        read -p "  Telegram API Hash (opsiyonel): " telegram_api_hash
+        echo ""
+    fi
+
+    echo "  ── WhatsApp (opsiyonel) ──"
+    echo ""
+    echo "  WhatsApp entegrasyonu icin uygulama basladiktan sonra"
+    echo "  Web UI'da WhatsApp QR kodu taratmaniz gerekecek."
     echo ""
 
     {
         echo "GOOGLE_API_KEY=$gemini_key"
         echo "ANTHROPIC_API_KEY=$anthropic_key"
         [ -n "$telegram_token" ] && echo "TELEGRAM_BOT_TOKEN=$telegram_token"
+        [ -n "$telegram_api_id" ] && echo "TELEGRAM_API_ID=$telegram_api_id"
+        [ -n "$telegram_api_hash" ] && echo "TELEGRAM_API_HASH=$telegram_api_hash"
     } > .env
 
     echo "  ✅ API anahtarlari kaydedildi"
