@@ -28,6 +28,51 @@ async def _capture_main_loop():
     global _main_loop
     _main_loop = asyncio.get_running_loop()
 
+@app.on_event("startup")
+async def _start_telegram_monitor():
+    """Telethon User API monitörünü başlat (opsiyonel)."""
+    try:
+        tg_api_id = os.environ.get("TG_API_ID", "").strip()
+        tg_api_hash = os.environ.get("TG_API_HASH", "").strip()
+        if not tg_api_id or not tg_api_hash:
+            return  # Yapılandırılmamış — atla
+
+        from core.telegram_monitor import TelegramMonitor
+        import core as core_module
+
+        monitor = TelegramMonitor()
+        core_module._telegram_monitor_instance = monitor
+
+        # Broadcast fonksiyonu — web UI'a gönder
+        async def _tg_broadcast(event_type, data):
+            msg = json.dumps({"type": event_type, **data})
+            for ws in list(_ws_clients):
+                try:
+                    await ws.send_text(msg)
+                except Exception:
+                    pass
+
+        monitor.set_broadcast(_tg_broadcast)
+
+        # Sesli bildirim — mention gelince voice engine'e bildir
+        async def _on_mention(sender_name, chat_name, text_preview, reason):
+            if _voice_engine:
+                try:
+                    await _voice_engine.inject_notification(
+                        f"{sender_name}, {chat_name} sohbetinde sizi {reason}: {text_preview[:50]}"
+                    )
+                except Exception:
+                    pass
+
+        monitor.set_on_mention(_on_mention)
+
+        await monitor.start()
+        log.info("[TG Monitor] Telethon monitör başlatıldı")
+    except ImportError:
+        pass  # telethon yüklü değil
+    except Exception as e:
+        log.warning(f"[TG Monitor] Başlatılamadı: {e}")
+
 TEMPLATES = BASE_DIR / "web" / "templates"
 
 # WebSocket clients

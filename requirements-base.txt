@@ -39,6 +39,7 @@ duckduckgo-search
 
 # Telegram
 python-telegram-bot
+telethon
 
 # Utils
 psutil

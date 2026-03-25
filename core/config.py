@@ -81,6 +81,21 @@ def get_telegram_token() -> str | None:
     return os.environ.get("TELEGRAM_BOT_TOKEN", "").strip() or None
 
 
+def get_tg_api_id() -> str | None:
+    """Telegram User API ID (Telethon icin)."""
+    return os.environ.get("TG_API_ID", "").strip() or None
+
+
+def get_tg_api_hash() -> str | None:
+    """Telegram User API Hash (Telethon icin)."""
+    return os.environ.get("TG_API_HASH", "").strip() or None
+
+
+def get_tg_phone() -> str | None:
+    """Telegram telefon numarasi (Telethon icin)."""
+    return os.environ.get("TG_PHONE", "").strip() or None
+
+
 def is_configured() -> bool:
     """API key'ler ayarlanmis mi?"""
     gemini = get_gemini_key()
