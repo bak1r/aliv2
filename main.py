@@ -400,7 +400,13 @@ def main():
             if sys.platform == "darwin" or sys.platform == "linux":
                 subprocess.run(f"lsof -ti:{port} | xargs kill -9", shell=True, capture_output=True)
             elif sys.platform == "win32":
-                subprocess.run(f"for /f \"tokens=5\" %a in ('netstat -aon ^| findstr :{port}') do taskkill /PID %a /F", shell=True, capture_output=True)
+                try:
+                    import psutil
+                    for conn in psutil.net_connections():
+                        if conn.laddr.port == port and conn.pid:
+                            psutil.Process(conn.pid).kill()
+                except Exception:
+                    subprocess.run(f"netstat -aon | findstr :{port}", shell=True, capture_output=True)
             import time as _time
             _time.sleep(1)
     except Exception:
@@ -421,8 +427,9 @@ def main():
         voice_thread.start()
         print(f"  [Ses]      Motor baslatildi")
 
-    # Tarayici ac
-    threading.Timer(1.5, lambda: webbrowser.open(f"http://127.0.0.1:{port}")).start()
+    # Electron'dan açılmışsa tarayıcıyı açma
+    if not os.environ.get("ALI_ELECTRON"):
+        threading.Timer(1.5, lambda: webbrowser.open(f"http://127.0.0.1:{port}")).start()
 
     print(f"\n{'='*55}")
     print(f"  Web UI: http://127.0.0.1:{port}")

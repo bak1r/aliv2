@@ -70,7 +70,8 @@ class SystemControlTool(BaseTool):
 
         cpu = psutil.cpu_percent(interval=0.5)
         mem = psutil.virtual_memory()
-        disk = psutil.disk_usage("/")
+        disk_path = "C:\\" if sys.platform == "win32" else "/"
+        disk = psutil.disk_usage(disk_path)
 
         return (
             f"Sistem Bilgisi:\n"

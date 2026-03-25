@@ -147,11 +147,21 @@ class WhatsAppTool(BaseTool):
                     import pyautogui
                     pyautogui.hotkey("command", "f")
                     time.sleep(0.5)
-                    pyautogui.typewrite(contact, interval=0.05)
+                    try:
+                        import pyperclip
+                        pyperclip.copy(contact)
+                        pyautogui.hotkey("command" if sys.platform == "darwin" else "ctrl", "v")
+                    except ImportError:
+                        pyautogui.typewrite(contact, interval=0.05)
                     time.sleep(1)
                     pyautogui.press("enter")
                     time.sleep(0.5)
-                    pyautogui.typewrite(message, interval=0.02)
+                    try:
+                        import pyperclip
+                        pyperclip.copy(message)
+                        pyautogui.hotkey("command" if sys.platform == "darwin" else "ctrl", "v")
+                    except ImportError:
+                        pyautogui.typewrite(message, interval=0.02)
                     pyautogui.press("enter")
                     return (
                         f"WhatsApp mesaji gonderildi (PyAutoGUI).\n"
@@ -173,11 +183,21 @@ class WhatsAppTool(BaseTool):
                     import pyautogui
                     pyautogui.hotkey("ctrl", "f")
                     time.sleep(0.5)
-                    pyautogui.typewrite(contact, interval=0.05)
+                    try:
+                        import pyperclip
+                        pyperclip.copy(contact)
+                        pyautogui.hotkey("command" if sys.platform == "darwin" else "ctrl", "v")
+                    except ImportError:
+                        pyautogui.typewrite(contact, interval=0.05)
                     time.sleep(1)
                     pyautogui.press("enter")
                     time.sleep(0.5)
-                    pyautogui.typewrite(message, interval=0.02)
+                    try:
+                        import pyperclip
+                        pyperclip.copy(message)
+                        pyautogui.hotkey("command" if sys.platform == "darwin" else "ctrl", "v")
+                    except ImportError:
+                        pyautogui.typewrite(message, interval=0.02)
                     pyautogui.press("enter")
                     return (
                         f"WhatsApp mesaji gonderildi (PyAutoGUI).\n"

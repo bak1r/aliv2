@@ -46,9 +46,13 @@ echo   ✅ Sanal ortam hazir
 :: 3. Paketler
 echo   📥 Paketler kuruluyor (bu biraz surebilir)...
 .venv\Scripts\pip install -q --upgrade pip 2>nul
-.venv\Scripts\pip install -q -r requirements-base.txt 2>nul
+.venv\Scripts\pip install -r requirements-base.txt
+if %ERRORLEVEL% neq 0 (
+    echo   ⚠️  Bazi paketler kurulamadi, tekrar deneniyor...
+    .venv\Scripts\pip install -r requirements-base.txt --no-cache-dir
+)
 if exist "requirements-win.txt" (
-    .venv\Scripts\pip install -q -r requirements-win.txt 2>nul
+    .venv\Scripts\pip install -r requirements-win.txt
 )
 echo   ✅ Paketler kuruldu
 
@@ -90,9 +94,9 @@ if not exist ".env" (
     set /p telegram_token="  Telegram Bot Token (opsiyonel): "
 
     (
-        echo GOOGLE_API_KEY=%gemini_key%
-        echo ANTHROPIC_API_KEY=%anthropic_key%
-        if not "%telegram_token%"=="" echo TELEGRAM_BOT_TOKEN=%telegram_token%
+        echo GOOGLE_API_KEY="%gemini_key%"
+        echo ANTHROPIC_API_KEY="%anthropic_key%"
+        if not "%telegram_token%"=="" echo TELEGRAM_BOT_TOKEN="%telegram_token%"
     ) > .env
 
     echo   ✅ API anahtarlari kaydedildi

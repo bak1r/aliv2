@@ -24,10 +24,13 @@ _WIN_APPS = {
     "chrome": "chrome", "firefox": "firefox", "edge": "msedge",
     "word": "winword", "excel": "excel", "powerpoint": "powerpnt",
     "explorer": "explorer", "notepad": "notepad", "cmd": "cmd",
-    "calculator": "calc", "paint": "mspaint",
+    "terminal": "wt", "calculator": "calc", "paint": "mspaint",
+    "notes": "notepad", "calendar": "outlookcal:", "mail": "outlookmail:",
+    "music": "mswindowsmusic:", "photos": "ms-photos:",
     "whatsapp": "whatsapp", "telegram": "telegram", "discord": "discord",
-    "slack": "slack", "zoom": "zoom", "teams": "teams",
+    "slack": "slack", "zoom": "zoom", "teams": "msteams:",
     "vscode": "code", "code": "code",
+    "finder": "explorer", "safari": "msedge",
 }
 
 
@@ -86,15 +89,31 @@ class AppLauncherTool(BaseTool):
         return f"'{original}' uygulamasi bulunamadi."
 
     def _open_win(self, app_lower: str, original: str) -> str:
+        import os
         win_name = _WIN_APPS.get(app_lower)
         if win_name:
+            # Protocol handler (ms-photos:, outlookcal: vb.)
+            if win_name.endswith(":"):
+                try:
+                    os.startfile(win_name)
+                    return f"{original} acildi."
+                except Exception:
+                    pass
+
+            # PATH'te var mı?
             if shutil.which(win_name):
                 subprocess.Popen(win_name, shell=True)
                 return f"{win_name} acildi."
 
-        # os.startfile ile dene
+            # os.startfile ile dene
+            try:
+                os.startfile(win_name)
+                return f"{win_name} acildi."
+            except Exception:
+                pass
+
+        # Direkt os.startfile
         try:
-            import os
             os.startfile(original)
             return f"{original} acildi."
         except Exception:
@@ -104,7 +123,7 @@ class AppLauncherTool(BaseTool):
         try:
             subprocess.Popen(
                 ["powershell", "-Command", f"Start-Process '{original}'"],
-                shell=True
+                creationflags=0x08000000  # CREATE_NO_WINDOW
             )
             return f"{original} acildi."
         except Exception:

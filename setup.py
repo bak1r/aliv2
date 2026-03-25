@@ -45,7 +45,12 @@ def check_python():
         print("OK")
         return True
     print("YETERSIZ (3.10+ gerekli)")
-    print("  Kurulum: brew install python@3.12")
+    if sys.platform == "darwin":
+        print("  Kurulum: brew install python@3.12")
+    elif sys.platform == "win32":
+        print("  Kurulum: https://python.org adresinden Python 3.12+ indirin")
+    else:
+        print("  Kurulum: sudo apt install python3.12 (veya distro paket yoneticisi)")
     return False
 
 
@@ -251,7 +256,10 @@ def main():
 
     print(f"\n{'='*50}")
     print(f"  Kurulum tamamlandi!")
-    print(f"  Calistirmak icin: ./run.sh (veya: .venv/bin/python3 main.py)")
+    if sys.platform == "win32":
+        print(f"  Calistirmak icin: Kur ve Baslat.bat (veya: .venv\\Scripts\\python main.py)")
+    else:
+        print(f"  Calistirmak icin: ./run.sh (veya: .venv/bin/python3 main.py)")
     print(f"{'='*50}\n")
 
 
