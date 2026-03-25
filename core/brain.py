@@ -5,14 +5,13 @@ v2.1: Streaming, tool state callbacks, retry logic, context-aware routing, cost 
 
 from __future__ import annotations
 
-import json
 import time
 import re
 import random
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
-from datetime import datetime, date
+from datetime import date
 from typing import Callable, Optional
 
 import logging
@@ -33,7 +32,7 @@ def _report_error(source, error, context="", severity="ERROR"):
 
 from core.prompt import build_claude_prompt
 from core.memory import extract_memories_async, get_memory_context, get_user_name
-from tools import get_registry, get_claude_tool_definitions, get_tool
+from tools import get_claude_tool_definitions, get_tool
 
 # ── Ayarlar ──────────────────────────────────────────────────────────
 _brain_cfg = SETTINGS.get("brain", {})
@@ -505,7 +504,7 @@ def think(
             break
         except Exception as e:
             log.error(f"Beklenmeyen hata: {e}")
-            _report_error("brain.think", e, context=f"Query: {query[:100]}", severity="ERROR")
+            _report_error("brain.think", e, context=f"Query: {user_message[:100]}", severity="ERROR")
             final_text = f"Beklenmeyen hata: {e}"
             break
 

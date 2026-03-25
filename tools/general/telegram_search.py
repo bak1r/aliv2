@@ -61,7 +61,12 @@ class TelegramSearchTool(BaseTool):
             return "Telegram User API bagli degil. TG_API_ID, TG_API_HASH, TG_PHONE ayarlayin."
 
         try:
-            results = _run_async(monitor.search_messages(query, chat_name=chat_name or None, limit=limit))
+            chat_id = None
+            if chat_name:
+                chat_info = _run_async(monitor.find_chat(chat_name))
+                if chat_info:
+                    chat_id = chat_info.get('id')
+            results = _run_async(monitor.search_messages(query, limit=limit, chat_id=chat_id))
             if not results:
                 return f"'{query}' icin sonuc bulunamadi."
 
@@ -147,7 +152,7 @@ class TelegramReadMessagesTool(BaseTool):
             return "Telegram User API bagli degil."
 
         try:
-            messages = _run_async(monitor.read_chat_messages(chat_name=chat_name, limit=limit))
+            messages = _run_async(monitor.get_chat_messages(chat_name=chat_name, limit=limit))
             if not messages:
                 return f"'{chat_name}' sohbetinde mesaj bulunamadi veya sohbet yok."
 
