@@ -562,8 +562,8 @@ class VoiceEngine:
                     turns=[{"parts": [{"text": "Kullanıcıya 'Bir sorun oluştu, lütfen tekrar deneyin' de."}]}],
                     turn_complete=True,
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                log.error(f"Brain redirect hatasi: {e}")
 
     async def _notification_listener(self):
         """Proaktif bildirim dinleyici."""

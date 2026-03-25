@@ -15,9 +15,22 @@ from threading import Lock
 from datetime import datetime, date
 from typing import Callable, Optional
 
+import logging
+
 import anthropic
 
 from core.config import get_anthropic_key, SETTINGS
+
+log = logging.getLogger("ali.brain")
+
+# Telemetry — kritik hataları Telegram'a bildir
+def _report_error(source, error, context="", severity="ERROR"):
+    try:
+        from core.telemetry import report
+        report(source, error, context=context, severity=severity)
+    except Exception:
+        pass
+
 from core.prompt import build_claude_prompt
 from core.memory import extract_memories_async, get_memory_context, get_user_name
 from tools import get_registry, get_claude_tool_definitions, get_tool
@@ -303,8 +316,8 @@ def _get_legal_context_snippet(query: str) -> str:
             result = tool.run(query=query, domain="hepsi")
             if result and "sonuc bulunamadi" not in result.lower():
                 return result[:2000]
-    except Exception:
-        pass
+    except Exception as e:
+        log.warning(f"Bilgi bankasi hatasi: {e}")
     return ""
 
 
@@ -318,20 +331,20 @@ def _api_call_with_retry(client, **kwargs) -> object:
         except anthropic.RateLimitError as e:
             last_error = e
             delay = RETRY_DELAYS[min(attempt, len(RETRY_DELAYS) - 1)]
-            print(f"[Beyin] Rate limit — {delay}s bekleniyor (deneme {attempt + 1}/{MAX_RETRIES})")
+            log.warning(f"Rate limit — {delay}s bekleniyor (deneme {attempt + 1}/{MAX_RETRIES})")
             time.sleep(delay)
         except anthropic.APIStatusError as e:
             if e.status_code >= 500:
                 last_error = e
                 delay = RETRY_DELAYS[min(attempt, len(RETRY_DELAYS) - 1)]
-                print(f"[Beyin] Sunucu hatasi {e.status_code} — {delay}s bekleniyor")
+                log.warning(f"Sunucu hatasi {e.status_code} — {delay}s bekleniyor")
                 time.sleep(delay)
             else:
                 raise
         except anthropic.APIConnectionError as e:
             last_error = e
             delay = RETRY_DELAYS[min(attempt, len(RETRY_DELAYS) - 1)]
-            print(f"[Beyin] Baglanti hatasi — {delay}s bekleniyor")
+            log.warning(f"Baglanti hatasi — {delay}s bekleniyor")
             time.sleep(delay)
     raise last_error
 
@@ -432,7 +445,7 @@ def think(
     mem_user = user_name or get_user_name()
     fast_response = _check_fast_path(user_message, user_name=mem_user)
     if fast_response:
-        print(f"[Beyin] ⚡ Fast-path: {user_message[:40]} → aninda yanit")
+        log.info(f"Fast-path: {user_message[:40]} → aninda yanit")
         _conversation_history.append({"role": "user", "content": user_message})
         _conversation_history.append({"role": "assistant", "content": fast_response})
         return fast_response
@@ -464,7 +477,7 @@ def think(
     # Mesajlari hazirla
     messages = list(_conversation_history)
 
-    print(f"[Beyin] Sorgu: {user_message[:80]}... | Model: {MODEL}")
+    log.info(f"Sorgu: {user_message[:80]}... | Model: {MODEL}")
 
     # ── Tool dongusu (max N tur) ────────────────────────────────────
     final_text = ""
@@ -486,9 +499,13 @@ def think(
                 messages=messages,
             )
         except anthropic.APIError as e:
+            log.error(f"Claude API hatasi: {e}")
+            _report_error("brain.api", e, context=f"Model: {MODEL}", severity="CRITICAL")
             final_text = f"Claude API hatasi: {e}"
             break
         except Exception as e:
+            log.error(f"Beklenmeyen hata: {e}")
+            _report_error("brain.think", e, context=f"Query: {query[:100]}", severity="ERROR")
             final_text = f"Beklenmeyen hata: {e}"
             break
 
@@ -520,7 +537,7 @@ def think(
         # Tool cagrilarini logla
         tool_names = [tc["name"] for tc in tool_calls]
         tools_used.extend(tool_names)
-        print(f"[Beyin] Tur {round_num + 1}/{MAX_TOOL_ROUNDS}: {', '.join(tool_names)}")
+        log.info(f"Tur {round_num + 1}/{MAX_TOOL_ROUNDS}: {', '.join(tool_names)}")
 
         # Tool cagrilarini calistir (callback'ler ile)
         tool_results = _execute_tools(tool_calls, on_tool_start, on_tool_end)
@@ -552,7 +569,9 @@ def think(
 
             if hasattr(synth, "usage"):
                 _track_cost(synth.usage)
-        except Exception:
+        except Exception as e:
+            log.error(f"Synthesis hatasi: {e}")
+            _report_error("brain.synthesis", e, severity="ERROR")
             final_text = "Sonuclar alindi ancak ozetlenemedi."
 
     # Konusma gecmisine assistant yanitini ekle

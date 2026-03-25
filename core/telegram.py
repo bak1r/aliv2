@@ -86,8 +86,8 @@ def _ws_broadcast_sync(event_type: str, data: dict):
             loop = asyncio.new_event_loop()
             loop.run_until_complete(_ws_broadcast(event_type, data))
             loop.close()
-        except Exception:
-            pass
+        except Exception as e:
+            log.debug(f"WS broadcast sync hatasi: {e}")
 
 
 # ── Yetki kontrolu ──────────────────────────────────────────────────
@@ -290,7 +290,7 @@ async def _post_init(application: Application):
     await application.bot.set_my_commands(commands)
     bot_info = await application.bot.get_me()
     log.info(f"[Telegram] Bot basladi: @{bot_info.username}")
-    print(f"[Telegram] Bot basladi: @{bot_info.username}")
+    log.info(f"Bot basladi: @{bot_info.username}")
 
 
 def _build_application() -> Application:
@@ -332,7 +332,6 @@ def start_telegram_bot(allowed_users: list[int] | None = None):
     token = get_telegram_token()
     if not token:
         log.warning("[Telegram] TELEGRAM_BOT_TOKEN bulunamadi, bot baslatilmadi.")
-        print("[Telegram] TELEGRAM_BOT_TOKEN bulunamadi, bot baslatilmadi.")
         return None
 
     if _running:
@@ -356,23 +355,23 @@ def start_telegram_bot(allowed_users: list[int] | None = None):
                 drop_pending_updates=True,
                 allowed_updates=Update.ALL_TYPES,
             ))
-            print("[Telegram] Bot baslatildi")
+            log.info("[Telegram] Bot baslatildi")
             loop.run_forever()
         except Exception as e:
             log.error(f"[Telegram] Bot hatasi: {e}")
-            print(f"[Telegram] Bot hatasi: {e}")
         finally:
             _running = False
             try:
                 loop.run_until_complete(_application.updater.stop())
                 loop.run_until_complete(_application.stop())
                 loop.run_until_complete(_application.shutdown())
-            except: pass
+            except Exception as e:
+                log.debug(f"Shutdown cleanup: {e}")
             loop.close()
 
     _thread = threading.Thread(target=_run_bot, daemon=True, name="telegram-bot")
     _thread.start()
-    print("[Telegram] Bot baslatiliyor...")
+    log.info("[Telegram] Bot baslatiliyor...")
     return _thread
 
 
@@ -384,7 +383,6 @@ def stop_telegram_bot():
             _application.stop_running()
             _running = False
             log.info("[Telegram] Bot durduruldu.")
-            print("[Telegram] Bot durduruldu.")
         except Exception as e:
             log.error(f"[Telegram] Durdurma hatasi: {e}")
 

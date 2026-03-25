@@ -1,9 +1,12 @@
 """Yargi kararlari arama araci — Turk mahkeme kararlari."""
 
 from __future__ import annotations
+import logging
 from tools.base import BaseTool
 from core.mcp_client import call_mcp_tool
 from core.config import SETTINGS
+
+log = logging.getLogger("ali.yargi_search")
 
 ENDPOINT = SETTINGS.get("mcp", {}).get("yargi_endpoint", "https://yargimcp.fastmcp.app/mcp")
 
@@ -44,7 +47,7 @@ class YargiSearchTool(BaseTool):
         tool_name = _SOURCE_MAP.get(source, "search_bedesten_unified")
         args = self._build_args(tool_name, source, query, date_start, date_end)
 
-        print(f"[Yargi] {tool_name}: {query[:60]}")
+        log.info(f"Yargi arama: {tool_name}: {query[:60]}")
         result = call_mcp_tool(ENDPOINT, tool_name, args)
 
         # MCP basarisizsa fallback
@@ -56,8 +59,8 @@ class YargiSearchTool(BaseTool):
                 local = tool.run(query=query, domain="hepsi")
                 if local and len(local) > 50 and "bulunamadi" not in local.lower():
                     result = f"[YEREL BILGI BANKASI]\n{local}"
-            except Exception:
-                pass
+            except Exception as e:
+                log.warning(f"Yargi arama hatasi: {e}")
 
         # Truncate
         if len(result) > 5000:

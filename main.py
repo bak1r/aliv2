@@ -13,7 +13,30 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE_DIR))
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s", datefmt="%H:%M:%S")
+# ─── Logging: Konsol + Dosya ───
+_log_fmt = "%(asctime)s [%(name)s] %(levelname)s: %(message)s"
+_log_datefmt = "%H:%M:%S"
+
+# Konsol handler
+logging.basicConfig(level=logging.INFO, format=_log_fmt, datefmt=_log_datefmt)
+
+# Dosya handler — data/ali.log
+_log_dir = BASE_DIR / "data"
+_log_dir.mkdir(parents=True, exist_ok=True)
+_log_file = _log_dir / "ali.log"
+try:
+    from logging.handlers import RotatingFileHandler
+    _fh = RotatingFileHandler(str(_log_file), maxBytes=10*1024*1024, backupCount=3, encoding="utf-8")
+    _fh.setLevel(logging.DEBUG)
+    _fh.setFormatter(logging.Formatter(_log_fmt, datefmt=_log_datefmt))
+    logging.getLogger().addHandler(_fh)
+except Exception as e:
+    logging.warning(f"Log dosyasi olusturulamadi: {e}")
+
+# Gürültülü kütüphaneleri sustur
+for _noisy in ("httpx", "httpcore", "urllib3", "websockets.server"):
+    logging.getLogger(_noisy).setLevel(logging.WARNING)
+
 log = logging.getLogger("ali")
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -49,8 +72,8 @@ async def _start_telegram_monitor():
             for ws in list(_ws_clients):
                 try:
                     await ws.send_text(msg)
-                except Exception:
-                    pass
+                except Exception as e:
+                    log.debug(f"WS broadcast: {e}")
 
         monitor.set_broadcast(_tg_broadcast)
 
@@ -61,15 +84,15 @@ async def _start_telegram_monitor():
                     await _voice_engine.inject_notification(
                         f"{sender_name}, {chat_name} sohbetinde sizi {reason}: {text_preview[:50]}"
                     )
-                except Exception:
-                    pass
+                except Exception as e:
+                    log.debug(f"Voice notification hatasi: {e}")
 
         monitor.set_on_mention(_on_mention)
 
         await monitor.start()
         log.info("[TG Monitor] Telethon monitör başlatıldı")
     except ImportError:
-        pass  # telethon yüklü değil
+        log.debug("telethon yuklu degil, TG Monitor atlanıyor")
     except Exception as e:
         log.warning(f"[TG Monitor] Başlatılamadı: {e}")
 
@@ -94,7 +117,8 @@ async def broadcast_to_all(event_type: str, data: dict):
     for ws in list(_ws_clients):
         try:
             await ws.send_text(msg)
-        except Exception:
+        except Exception as e:
+            log.debug(f"WS broadcast: {e}")
             dead.add(ws)
     _ws_clients.difference_update(dead)
 
@@ -143,7 +167,8 @@ async def ws_endpoint(ws: WebSocket):
     try:
         from core.telegram import is_running as tg_is_running
         tg_active = tg_is_running()
-    except Exception:
+    except Exception as e:
+        log.debug(f"Telegram durum kontrol hatasi: {e}")
         tg_active = bool(get_telegram_token())
 
     # ── Initial state sync ────────────────────────────────────────
@@ -193,24 +218,26 @@ async def ws_endpoint(ws: WebSocket):
                 try:
                     r = await client.get(mevzuat_url.replace("/mcp", "/health") if "/mcp" in mevzuat_url else mevzuat_url)
                     mevzuat_ok = r.status_code < 500
-                except Exception:
+                except Exception as e:
+                    log.debug(f"MCP health check (mevzuat/health): {e}")
                     try:
                         r = await client.get(mevzuat_url)
                         mevzuat_ok = r.status_code < 500
-                    except Exception:
-                        pass
+                    except Exception as e2:
+                        log.debug(f"MCP health check (mevzuat): {e2}")
                 try:
                     r = await client.get(yargi_url.replace("/mcp", "/health") if "/mcp" in yargi_url else yargi_url)
                     yargi_ok = r.status_code < 500
-                except Exception:
+                except Exception as e:
+                    log.debug(f"MCP health check (yargi/health): {e}")
                     try:
                         r = await client.get(yargi_url)
                         # 405 = servis var, GET desteklemiyor ama çalışıyor
                         yargi_ok = r.status_code in (200, 405)
-                    except Exception:
-                        pass
-        except Exception:
-            pass
+                    except Exception as e2:
+                        log.debug(f"MCP health check (yargi): {e2}")
+        except Exception as e:
+            log.debug(f"MCP health check hatasi: {e}")
         # Send MCP status to UI — hDb = Mevzuat MCP, hTg = Yargi MCP in the health widget
         await ws.send_text(json.dumps({"type": "daemon_status", "data": {
             "database": "ok" if mevzuat_ok else "down",
@@ -399,13 +426,13 @@ def _start_voice_engine():
                     "text": "Sesli asistan kullanilamiyor (1008). Yazarak devam edebilirsiniz.",
                     "priority": "urgent"
                 }))
-        except Exception:
-            pass
+        except Exception as e:
+            log.debug(f"Voice cleanup broadcast hatasi: {e}")
     finally:
         try:
             loop.close()
-        except Exception:
-            pass
+        except Exception as e:
+            log.debug(f"Voice cleanup: {e}")
 
 
 def main():
@@ -413,6 +440,13 @@ def main():
 
     for d in ["data", "data/sessions", "data/documents", "data/screenshots"]:
         (BASE_DIR / d).mkdir(parents=True, exist_ok=True)
+
+    # Telemetry — başlatma bildirimi
+    try:
+        from core.telemetry import report_startup
+        report_startup()
+    except Exception as e:
+        log.debug(f"Telemetry startup hatasi: {e}")
 
     print(f"\n{'='*55}")
     print(f"  ALI v2 — Avukat AI Asistani (Prod Ready)")
@@ -450,27 +484,28 @@ def main():
                     for conn in psutil.net_connections():
                         if conn.laddr.port == port and conn.pid:
                             psutil.Process(conn.pid).kill()
-                except Exception:
+                except Exception as e:
+                    log.debug(f"psutil port cleanup hatasi: {e}")
                     subprocess.run(f"netstat -aon | findstr :{port}", shell=True, capture_output=True)
             import time as _time
             _time.sleep(1)
-    except Exception:
-        pass
+    except Exception as e:
+        log.debug(f"Port kontrol hatasi: {e}")
 
     # Telegram bot (varsa)
     if telegram_ok:
         try:
             from core.telegram import start_telegram_bot
             start_telegram_bot()
-            print(f"  [Telegram] Bot baslatildi")
+            log.info("[Telegram] Bot baslatildi")
         except Exception as e:
-            print(f"  [Telegram] Hata: {e}")
+            log.warning(f"[Telegram] Hata: {e}")
 
     # Ses motoru (varsa)
     if gemini_ok:
         voice_thread = threading.Thread(target=_start_voice_engine, daemon=True)
         voice_thread.start()
-        print(f"  [Ses]      Motor baslatildi")
+        log.info("[Ses] Motor baslatildi")
 
     # Tarayıcı otomatik açılmasın — kullanıcı Electron app veya kendi tarayıcısını kullanır
     # if not os.environ.get("ALI_ELECTRON"):
@@ -482,7 +517,14 @@ def main():
     print(f"{'='*55}\n")
 
     # Uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
+    try:
+        uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
+    finally:
+        try:
+            from core.telemetry import report_shutdown
+            report_shutdown("normal")
+        except Exception as e:
+            log.debug(f"Telemetry shutdown hatasi: {e}")
 
 
 if __name__ == "__main__":

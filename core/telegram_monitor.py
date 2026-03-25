@@ -322,7 +322,8 @@ class TelegramMonitor:
             # Sadece @username, entity mention ve reply_to_me güvenilir.
 
             return False
-        except Exception:
+        except Exception as e:
+            log.debug(f"Mention tespit hatasi: {e}")
             return False
 
     async def _is_reply_to_me(self, msg) -> bool:
@@ -333,8 +334,8 @@ class TelegramMonitor:
             reply_msg = await msg.get_reply_message()
             if reply_msg and reply_msg.sender_id == self._me.id:
                 return True
-        except Exception:
-            pass
+        except Exception as e:
+            log.debug(f"Reply kontrol hatasi: {e}")
         return False
 
     # ═══════════════════════════════════════════════════════════════
@@ -361,8 +362,8 @@ class TelegramMonitor:
                 try:
                     sender = await msg.get_sender()
                     sender_name = self._get_entity_name(sender)
-                except Exception:
-                    pass
+                except Exception as e:
+                    log.debug(f"Sender bilgisi alinamadi: {e}")
 
                 chat_name = str(msg.chat_id or "?")
                 cached = self._dialog_cache.get(msg.chat_id)
@@ -372,8 +373,8 @@ class TelegramMonitor:
                     try:
                         chat = await msg.get_chat()
                         chat_name = self._get_chat_name(chat, msg.chat_id)
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        log.debug(f"Chat bilgisi alinamadi: {e}")
 
                 results.append({
                     "chat_id": msg.chat_id,
@@ -416,8 +417,8 @@ class TelegramMonitor:
                         try:
                             sender = await msg.get_sender()
                             sender_name = self._get_entity_name(sender)
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            log.debug(f"Sender bilgisi alinamadi: {e}")
 
                         results.append({
                             "chat_id": dialog.id,
@@ -429,7 +430,8 @@ class TelegramMonitor:
                         })
                         if len(results) >= limit:
                             break
-                except Exception:
+                except Exception as e:
+                    log.debug(f"Unread mention okuma hatasi: {e}")
                     continue
 
             return results
@@ -600,8 +602,8 @@ class TelegramMonitor:
                 try:
                     sender = await msg.get_sender()
                     sender_name = self._get_entity_name(sender)
-                except Exception:
-                    pass
+                except Exception as e:
+                    log.debug(f"Sender bilgisi alinamadi: {e}")
 
                 messages.append({
                     "id": msg.id,
@@ -784,8 +786,8 @@ class TelegramMonitor:
                     await self._refresh_dialog_cache()
             except asyncio.CancelledError:
                 break
-            except Exception:
-                pass
+            except Exception as e:
+                log.debug(f"Periodic dialog refresh hatasi: {e}")
 
     async def _connection_watchdog(self):
         """Bağlantı durumunu kontrol et."""
@@ -804,8 +806,8 @@ class TelegramMonitor:
                         log.error(f"Telegram reconnect hatası: {e}")
             except asyncio.CancelledError:
                 break
-            except Exception:
-                pass
+            except Exception as e:
+                log.debug(f"Connection watchdog hatasi: {e}")
 
     async def _auto_reconnect(self):
         """Başlangıç bağlantısı başarısız olunca yeniden dene."""
@@ -833,6 +835,6 @@ class TelegramMonitor:
         if self._client:
             try:
                 await self._client.disconnect()
-            except Exception:
-                pass
+            except Exception as e:
+                log.debug(f"Telegram disconnect hatasi: {e}")
         log.info("Telegram monitör durduruldu.")

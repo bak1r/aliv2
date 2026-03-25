@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 import sys
 import subprocess
 import shutil
 from tools.base import BaseTool
+
+log = logging.getLogger("ali.app_launcher")
 
 
 # Uygulama isim → komut eslesmesi
@@ -97,8 +100,8 @@ class AppLauncherTool(BaseTool):
                 try:
                     os.startfile(win_name)
                     return f"{original} acildi."
-                except Exception:
-                    pass
+                except Exception as e:
+                    log.warning(f"Uygulama acilamadi (protocol): {e}")
 
             # PATH'te var mı?
             if shutil.which(win_name):
@@ -109,15 +112,15 @@ class AppLauncherTool(BaseTool):
             try:
                 os.startfile(win_name)
                 return f"{win_name} acildi."
-            except Exception:
-                pass
+            except Exception as e:
+                log.warning(f"Uygulama acilamadi (startfile): {e}")
 
         # Direkt os.startfile
         try:
             os.startfile(original)
             return f"{original} acildi."
-        except Exception:
-            pass
+        except Exception as e:
+            log.warning(f"Uygulama acilamadi (direkt startfile): {e}")
 
         # PowerShell ile dene
         try:
@@ -126,5 +129,6 @@ class AppLauncherTool(BaseTool):
                 creationflags=0x08000000  # CREATE_NO_WINDOW
             )
             return f"{original} acildi."
-        except Exception:
+        except Exception as e:
+            log.warning(f"Uygulama acilamadi (powershell): {e}")
             return f"'{original}' uygulamasi bulunamadi."

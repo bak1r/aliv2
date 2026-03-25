@@ -1,9 +1,12 @@
 """Mevzuat arama araci — Turk mevzuati (kanun, KHK, tuzuk, yonetmelik, teblig, CBK)."""
 
 from __future__ import annotations
+import logging
 from tools.base import BaseTool
 from core.mcp_client import call_mcp_tool
 from core.config import SETTINGS
+
+log = logging.getLogger("ali.mevzuat_search")
 
 ENDPOINT = SETTINGS.get("mcp", {}).get("mevzuat_endpoint", "https://mevzuat.surucu.dev/mcp")
 
@@ -52,7 +55,7 @@ class MevzuatSearchTool(BaseTool):
         tool_name = _TYPE_MAP.get(mtype, "search_kanun")
         args = self._build_args(tool_name, query, mevzuat_no)
 
-        print(f"[Mevzuat] {tool_name}: {query[:60]}")
+        log.info(f"Mevzuat arama: {tool_name}: {query[:60]}")
         result = call_mcp_tool(ENDPOINT, tool_name, args)
 
         # MCP basarisizsa yerel bilgi bankasina bak
@@ -99,8 +102,8 @@ class MevzuatSearchTool(BaseTool):
             local = tool.run(query=query, domain=domain)
             if local and len(local) > 50 and "bulunamadi" not in local.lower():
                 return f"[YEREL BILGI BANKASI]\n{local}"
-        except Exception:
-            pass
+        except Exception as e:
+            log.warning(f"Mevzuat arama hatasi: {e}")
         return None
 
     @staticmethod
