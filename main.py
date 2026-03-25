@@ -486,7 +486,14 @@ def main():
                             psutil.Process(conn.pid).kill()
                 except Exception as e:
                     log.debug(f"psutil port cleanup hatasi: {e}")
-                    subprocess.run(f"netstat -aon | findstr :{port}", shell=True, capture_output=True)
+                    try:
+                        result = subprocess.run(f"netstat -aon | findstr :{port}", shell=True, capture_output=True, text=True)
+                        for line in result.stdout.strip().split('\n'):
+                            parts = line.strip().split()
+                            if len(parts) >= 5 and parts[-1].isdigit() and int(parts[-1]) > 0:
+                                subprocess.run(f"taskkill /PID {parts[-1]} /F", shell=True, capture_output=True)
+                    except Exception as e2:
+                        log.debug(f"netstat fallback hatasi: {e2}")
             import time as _time
             _time.sleep(1)
     except Exception as e:
