@@ -436,6 +436,10 @@ def _start_voice_engine():
 
 
 def main():
+    # Windows asyncio uyumluluğu (uvicorn + websockets için gerekli)
+    if sys.platform == 'win32':
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
     from core.config import SETTINGS, get_gemini_key, get_anthropic_key, get_telegram_token
 
     for d in ["data", "data/sessions", "data/documents", "data/screenshots"]:
