@@ -123,6 +123,7 @@ if [ ! -f ".env" ]; then
         echo ""
         read -p "  Telegram API ID (opsiyonel): " telegram_api_id
         read -p "  Telegram API Hash (opsiyonel): " telegram_api_hash
+        read -p "  Telefon numarasi (ornek: +905551234567): " telegram_phone
         echo ""
     fi
 
@@ -136,8 +137,9 @@ if [ ! -f ".env" ]; then
         echo "GOOGLE_API_KEY=$gemini_key"
         echo "ANTHROPIC_API_KEY=$anthropic_key"
         [ -n "$telegram_token" ] && echo "TELEGRAM_BOT_TOKEN=$telegram_token"
-        [ -n "$telegram_api_id" ] && echo "TELEGRAM_API_ID=$telegram_api_id"
-        [ -n "$telegram_api_hash" ] && echo "TELEGRAM_API_HASH=$telegram_api_hash"
+        [ -n "$telegram_api_id" ] && echo "TG_API_ID=$telegram_api_id"
+        [ -n "$telegram_api_hash" ] && echo "TG_API_HASH=$telegram_api_hash"
+        [ -n "$telegram_phone" ] && echo "TG_PHONE=$telegram_phone"
     } > .env
 
     echo "  ✅ API anahtarlari kaydedildi"

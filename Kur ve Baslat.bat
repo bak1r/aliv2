@@ -106,6 +106,7 @@ if not exist ".env" (
         echo.
         set /p telegram_api_id="  Telegram API ID (opsiyonel): "
         set /p telegram_api_hash="  Telegram API Hash (opsiyonel): "
+        set /p telegram_phone="  Telefon numarasi (ornek: +905551234567): "
         echo.
     )
 
@@ -119,8 +120,9 @@ if not exist ".env" (
         echo GOOGLE_API_KEY="%gemini_key%"
         echo ANTHROPIC_API_KEY="%anthropic_key%"
         if not "%telegram_token%"=="" echo TELEGRAM_BOT_TOKEN="%telegram_token%"
-        if not "%telegram_api_id%"=="" echo TELEGRAM_API_ID="%telegram_api_id%"
-        if not "%telegram_api_hash%"=="" echo TELEGRAM_API_HASH="%telegram_api_hash%"
+        if not "%telegram_api_id%"=="" echo TG_API_ID="%telegram_api_id%"
+        if not "%telegram_api_hash%"=="" echo TG_API_HASH="%telegram_api_hash%"
+        if not "%telegram_phone%"=="" echo TG_PHONE="%telegram_phone%"
     ) > .env
 
     echo   ✅ API anahtarlari kaydedildi
