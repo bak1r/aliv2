@@ -219,6 +219,9 @@ header{
 .h-off{background:var(--dim)}
 .h-lbl{flex:1;color:var(--text2)}
 .h-val{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--dim)}
+.cfg-btn{font-size:9px;padding:2px 8px;border:1px solid var(--border-h);border-radius:4px;background:transparent;color:var(--text2);cursor:pointer;flex-shrink:0;transition:all 0.2s}
+.cfg-btn:hover{background:var(--border-h);color:var(--text)}
+.cfg-row .cfg-status{min-width:60px;text-align:right}
 
 /* Capabilities */
 .cap-tag{display:inline-block;font-size:8px;padding:2px 7px;border-radius:10px;margin:2px;border:1px solid;font-weight:500;letter-spacing:0.3px}
@@ -1027,6 +1030,25 @@ footer{
         <div class="h-row"><div class="h-dot h-off" id="hVoice"></div><span class="h-lbl">Voice Engine</span><span class="h-val" id="hVoiceV">&mdash;</span></div>
         <div class="h-row"><div class="h-dot h-off" id="hLatency"></div><span class="h-lbl">Gecikme</span><span class="h-val" id="hLatencyV">&mdash;</span></div>
       </div>
+    </div>
+    <!-- Yapılandırma -->
+    <div class="r-sec">
+      <div class="r-title" style="color:var(--gold)">YAPILANDIRMA</div>
+      <div id="configPanel">
+        <div class="h-row cfg-row" data-key="ANTHROPIC_API_KEY"><div class="h-dot h-off" id="cfgAnthro"></div><span class="h-lbl">Claude API</span><span class="h-val cfg-status" id="cfgAnthroV">&mdash;</span><button class="cfg-btn" onclick="toggleCfgInput(this,'ANTHROPIC_API_KEY','sk-ant-...')">Ekle</button></div>
+        <div class="h-row cfg-row" data-key="GOOGLE_API_KEY"><div class="h-dot h-off" id="cfgGemini"></div><span class="h-lbl">Gemini API</span><span class="h-val cfg-status" id="cfgGeminiV">&mdash;</span><button class="cfg-btn" onclick="toggleCfgInput(this,'GOOGLE_API_KEY','AIza...')">Ekle</button></div>
+        <div class="h-row cfg-row" data-key="TELEGRAM_BOT_TOKEN"><div class="h-dot h-off" id="cfgTgBot"></div><span class="h-lbl">Telegram Bot</span><span class="h-val cfg-status" id="cfgTgBotV">&mdash;</span><button class="cfg-btn" onclick="toggleCfgInput(this,'TELEGRAM_BOT_TOKEN','123:ABC...')">Ekle</button></div>
+        <div class="h-row cfg-row" data-key="TG_API_ID"><div class="h-dot h-off" id="cfgTgApi"></div><span class="h-lbl">Telegram API</span><span class="h-val cfg-status" id="cfgTgApiV">&mdash;</span><button class="cfg-btn" onclick="toggleCfgInput(this,'TG_API_ID','12345678')">Ekle</button></div>
+        <div class="h-row cfg-row" data-key="TG_PHONE"><div class="h-dot h-off" id="cfgTgPhone"></div><span class="h-lbl">TG Telefon</span><span class="h-val cfg-status" id="cfgTgPhoneV">&mdash;</span><button class="cfg-btn" onclick="toggleCfgInput(this,'TG_PHONE','+905...')">Ekle</button></div>
+      </div>
+      <div id="cfgInputArea" style="display:none;margin-top:8px">
+        <input type="text" id="cfgInput" style="width:100%;padding:6px 10px;background:var(--bg2);border:1px solid var(--border-h);border-radius:8px;color:var(--text);font-family:monospace;font-size:12px" placeholder="">
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button class="cfg-btn" id="cfgSaveBtn" onclick="saveCfgInput()" style="background:var(--green);color:#000">Kaydet</button>
+          <button class="cfg-btn" onclick="closeCfgInput()">İptal</button>
+        </div>
+      </div>
+      <div id="cfgMsg" style="display:none;margin-top:8px;font-size:11px;padding:6px 10px;border-radius:6px"></div>
     </div>
     <!-- Capabilities -->
     <div class="r-sec">
@@ -1908,6 +1930,7 @@ function handleEvent(type, data) {
     case 'mcp_status':       onMcpStatus(data); break;
     case 'notes_clear':      $('notes').innerHTML = ''; break;
     case 'calendar_data':    renderCalendarData(data); break;
+    case 'settings_status':  updateConfigPanel(data); break;
   }
 }
 
@@ -1928,6 +1951,8 @@ function onStateSync(s) {
   updateHealthFromSync(s);
   // Fetch calendar data for badge
   requestCalendarData();
+  // Update config panel from settings_status
+  if (s.settings_status) updateConfigPanel(s.settings_status);
 }
 
 function updateHealthFromSync(s) {
@@ -3462,6 +3487,94 @@ document.addEventListener('DOMContentLoaded', () => {
   $('hAnthro').className = 'h-dot h-ok'; $('hAnthroV').textContent = 'Aktif';
   $('dWeb').classList.add('up');
 });
+
+// ─── Yapılandırma Paneli ───────────────────────────────────────────
+const _cfgMap = {
+  anthropic_key:  { dot: 'cfgAnthro', val: 'cfgAnthroV', label: 'Claude API' },
+  google_key:     { dot: 'cfgGemini', val: 'cfgGeminiV', label: 'Gemini API' },
+  telegram_bot:   { dot: 'cfgTgBot',  val: 'cfgTgBotV',  label: 'Telegram Bot' },
+  telegram_api:   { dot: 'cfgTgApi',  val: 'cfgTgApiV',  label: 'Telegram API' },
+  telegram_phone: { dot: 'cfgTgPhone',val: 'cfgTgPhoneV', label: 'TG Telefon' },
+};
+let _cfgCurrentKey = '';
+
+function updateConfigPanel(status) {
+  if (!status) return;
+  for (const [key, els] of Object.entries(_cfgMap)) {
+    const dotEl = $(els.dot);
+    const valEl = $(els.val);
+    const row = dotEl ? dotEl.closest('.cfg-row') : null;
+    const btn = row ? row.querySelector('.cfg-btn') : null;
+    if (!dotEl || !valEl) continue;
+    if (status[key]) {
+      dotEl.className = 'h-dot h-ok';
+      valEl.textContent = 'Aktif';
+      valEl.style.color = 'var(--green)';
+      if (btn) btn.textContent = 'Değiştir';
+    } else {
+      dotEl.className = 'h-dot h-off';
+      valEl.textContent = 'Kurulmadı';
+      valEl.style.color = 'var(--dim)';
+      if (btn) btn.textContent = 'Ekle';
+    }
+  }
+}
+
+function toggleCfgInput(btn, envKey, placeholder) {
+  const area = $('cfgInputArea');
+  const input = $('cfgInput');
+  if (area.style.display !== 'none' && _cfgCurrentKey === envKey) {
+    closeCfgInput(); return;
+  }
+  _cfgCurrentKey = envKey;
+  input.value = '';
+  input.placeholder = placeholder || '';
+  area.style.display = 'block';
+  input.focus();
+}
+
+function closeCfgInput() {
+  $('cfgInputArea').style.display = 'none';
+  _cfgCurrentKey = '';
+  $('cfgInput').value = '';
+}
+
+async function saveCfgInput() {
+  const key = _cfgCurrentKey;
+  const val = $('cfgInput').value.trim();
+  if (!key || !val) return;
+  const msgEl = $('cfgMsg');
+  try {
+    const resp = await fetch('/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [key]: val })
+    });
+    const data = await resp.json();
+    if (data.success) {
+      closeCfgInput();
+      msgEl.style.display = 'block';
+      msgEl.style.background = 'rgba(0,200,104,0.1)';
+      msgEl.style.color = 'var(--green)';
+      msgEl.textContent = '✓ Kaydedildi — değişiklik için uygulamayı yeniden başlatın.';
+      // Config panelini güncelle
+      const resp2 = await fetch('/settings');
+      const status = await resp2.json();
+      updateConfigPanel(status);
+      setTimeout(() => { msgEl.style.display = 'none'; }, 8000);
+    } else {
+      msgEl.style.display = 'block';
+      msgEl.style.background = 'rgba(232,64,64,0.1)';
+      msgEl.style.color = 'var(--red)';
+      msgEl.textContent = '✗ Hata: ' + (data.error || 'Bilinmeyen hata');
+    }
+  } catch (e) {
+    msgEl.style.display = 'block';
+    msgEl.style.background = 'rgba(232,64,64,0.1)';
+    msgEl.style.color = 'var(--red)';
+    msgEl.textContent = '✗ Bağlantı hatası';
+  }
+}
 </script>
 </body>
 </html>

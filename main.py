@@ -39,7 +39,7 @@ for _noisy in ("httpx", "httpcore", "urllib3", "websockets.server"):
 
 log = logging.getLogger("ali")
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 import uvicorn
 
@@ -150,6 +150,64 @@ async def health():
     })
 
 
+def _get_settings_status():
+    """Mevcut konfigürasyon durumunu döndür (değerleri DEĞİL, sadece var/yok)."""
+    from core.config import get_anthropic_key, get_gemini_key, get_telegram_token
+    return {
+        "anthropic_key": bool(get_anthropic_key()),
+        "google_key": bool(get_gemini_key()),
+        "telegram_bot": bool(get_telegram_token()),
+        "telegram_api": bool(os.environ.get("TG_API_ID", "").strip()),
+        "telegram_phone": bool(os.environ.get("TG_PHONE", "").strip()),
+        "voice_active": bool(get_gemini_key()),
+    }
+
+
+@app.get("/settings")
+async def get_settings():
+    return JSONResponse(_get_settings_status())
+
+
+@app.post("/settings")
+async def update_settings(request: Request):
+    """API key'leri .env dosyasına ekle/güncelle."""
+    try:
+        body = await request.json()
+        env_path = BASE_DIR / ".env"
+
+        # Mevcut .env'yi oku
+        existing = {}
+        if env_path.exists():
+            for line in env_path.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    existing[k.strip()] = v.strip().strip('"').strip("'")
+
+        # Yeni değerleri güncelle
+        allowed_keys = {
+            "ANTHROPIC_API_KEY", "GOOGLE_API_KEY",
+            "TELEGRAM_BOT_TOKEN", "TG_API_ID", "TG_API_HASH", "TG_PHONE",
+        }
+        updated = []
+        for key, value in body.items():
+            if key in allowed_keys and value and value.strip():
+                existing[key] = value.strip()
+                updated.append(key)
+
+        # .env'ye yaz
+        lines = [f'# ALI v2 — Konfigürasyon\n']
+        for k, v in existing.items():
+            lines.append(f'{k}="{v}"\n')
+        env_path.write_text("".join(lines), encoding="utf-8")
+
+        log.info(f"Settings güncellendi: {updated}")
+        return JSONResponse({"success": True, "updated": updated, "restart_needed": True})
+    except Exception as e:
+        log.error(f"Settings güncelleme hatası: {e}")
+        return JSONResponse({"success": False, "error": str(e)}, status_code=500)
+
+
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket):
     await ws.accept()
@@ -179,6 +237,7 @@ async def ws_endpoint(ws: WebSocket):
         "voice_active": bool(get_gemini_key()),
         "telegram_active": tg_active,
         "db_active": False,
+        "settings_status": _get_settings_status(),
     }}, ensure_ascii=False))
 
     # Welcome note
